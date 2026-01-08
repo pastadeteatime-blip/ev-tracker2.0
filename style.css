@@ -336,3 +336,8 @@ progress::-webkit-progress-value{
   color: rgba(15,23,42,0.6);
   margin-top: 6px;
 }
+
+assets/
+├─ icon-180.png
+├─ icon-192.png
+└─ icon-512.png
