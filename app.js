@@ -133,7 +133,7 @@ function renderMachineInfo(animateBorder = false) {
   const jackpotEl = $("infoJackpot");
   const rushEl = $("infoRush");
 
-  const borderText = `東京交換ボーダー：${fmtBorder(borderVal)} 回/k`;
+  const borderText = `28交換ボーダー：${fmtBorder(borderVal)} 回/k`;
 
   // ボーダーだけフェード
   if (borderEl) {
@@ -476,5 +476,6 @@ function init() {
   updateView();
   renderMachineInfo(false);
 }
+
 
 document.addEventListener("DOMContentLoaded", init);
