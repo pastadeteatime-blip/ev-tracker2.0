@@ -242,7 +242,6 @@ progress::-webkit-progress-value{
   font-weight: 600;
   margin: 0;
   margin-bottom: 10px;   /* ← 図柄揃いから距離を取る */
-  margin-left: 0.4em;    /* 機種名寄りの視覚調整 */
   margin-left: 1em;   /* ← ここがポイント */
   padding-left: 0.2em;
   line-height: 1.2;
@@ -315,10 +314,6 @@ progress::-webkit-progress-value{
   -webkit-user-select: none;
   user-select: none;
 }
-/* ===== 機種セレクトのズレ修正 ===== */
-.machine-row{
-  width: 100%;
-}
 
 .machine-label{
   width: 100%;
@@ -336,8 +331,3 @@ progress::-webkit-progress-value{
   color: rgba(15,23,42,0.6);
   margin-top: 6px;
 }
-
-assets/
-├─ icon-180.png
-├─ icon-192.png
-└─ icon-512.png
