@@ -1,0 +1,338 @@
+/* =========================
+   期待値トラッカー style.css（整理版）
+   - ロゴ（爽やかブルー×イエロー）準拠
+   - 白カード + 透明感ブルー背景
+   - 機種情報は常時モバイル縦配置（PCも同じ見え方）
+   - 投資ボタンは背景固定（PC白化防止 / iPhone可読性）
+   - 押下は沈む（scale廃止）
+   - tier: 赤/青/緑/紫（gold廃止）
+   - iOS連打ズーム対策は投資ボタン領域のみ
+   ========================= */
+
+/* ===== Theme Tokens ===== */
+:root{
+  --blue-top: #8fd3f4;
+  --blue-main: #5db9e8;
+  --blue-bottom: #3a8fc4;
+
+  --card: rgba(255,255,255,0.92);
+  --card-border: rgba(15, 23, 42, 0.10);
+  --shadow: 0 14px 40px rgba(2, 6, 23, 0.18);
+
+  --text: #0f172a;
+  --text-sub: rgba(15, 23, 42, 0.72);
+
+  --field: rgba(246, 249, 252, 1);
+  --field-border: rgba(2, 6, 23, 0.12);
+
+  --yellow: #ffd84d;
+  --yellow-deep: #f2b705;
+  --yellow-text: #5a4500;
+
+  --r-card: 18px;
+  --r-control: 14px;
+  --r-chip: 12px;
+}
+
+/* ===== Base ===== */
+body{
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin: 0;
+  padding: 20px;
+  background: linear-gradient(180deg, var(--blue-top) 0%, var(--blue-main) 50%, var(--blue-bottom) 100%);
+  color: var(--text);
+}
+
+body::before{
+  content:"";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(circle at 18% 25%, rgba(255,255,255,0.55) 1.3px, transparent 3px),
+    radial-gradient(circle at 78% 55%, rgba(255,255,255,0.45) 1.2px, transparent 3px),
+    radial-gradient(circle at 55% 12%, rgba(255,255,255,0.35) 1.1px, transparent 3px),
+    radial-gradient(circle at 12% 82%, rgba(255,255,255,0.40) 1.2px, transparent 3px);
+  background-size: 240px 240px;
+  opacity: 0.25;
+}
+
+body > *{ position: relative; z-index: 1; }
+
+h1{ margin: 0 0 10px; }
+
+/* ===== Layout ===== */
+.container{ max-width: 760px; margin: 0 auto; }
+
+.card{
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--r-card);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  margin-bottom: 16px;
+}
+
+/* ===== Logo ===== */
+.logo{
+  display:flex;
+  justify-content:center;
+  margin: 10px 0 18px;
+}
+.logo-svg{ display:inline-flex; }
+.logo-mark{
+  width: min(520px, 86vw);
+  height:auto;
+  display:block;
+}
+
+/* 画像ロゴ版を使う場合 */
+.app-logo{
+  width: min(520px, 90vw);
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  filter: drop-shadow(0 10px 28px rgba(2, 6, 23, 0.25));
+}
+
+/* ===== Form blocks ===== */
+label{
+  display:block;
+  background: rgba(255,255,255,0.78);
+  border: 1px solid rgba(2, 6, 23, 0.10);
+  border-radius: var(--r-control);
+  padding: 12px;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+input, select{
+  width: 100%;
+  background: var(--field);
+  color: var(--text);
+  border: 1px solid var(--field-border);
+  border-radius: var(--r-chip);
+  padding: 10px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+input:focus, select:focus{
+  outline: none;
+  border-color: rgba(242, 183, 5, 0.55);
+  box-shadow: 0 0 0 3px rgba(255, 216, 77, 0.35);
+}
+
+/* ===== Buttons (base) ===== */
+button{
+  padding: 16px;
+  border-radius: var(--r-control);
+  border: 1px solid rgba(2, 6, 23, 0.10);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.12);
+  transition: transform 0.08s ease, filter 0.12s ease, box-shadow 0.12s ease;
+  background: rgba(255,255,255,0.90); /* 保険：白化防止 */
+  color: var(--text);
+}
+
+/* 押下は沈む（共通） */
+button:active,
+.chip:active{
+  transform: translateY(2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+}
+
+/* 計算ボタン（主役） */
+#calcBtn{
+  width: 100%;
+  margin-top: 8px;
+  background: linear-gradient(180deg, var(--yellow) 0%, var(--yellow-deep) 100%);
+  color: #4a3600;
+  border: 1px solid rgba(74, 54, 0, 0.35);
+  box-shadow: 0 4px 0 rgba(74, 54, 0, 0.35), 0 10px 24px rgba(0,0,0,0.18);
+}
+
+/* リセット（控えめ） */
+#resetBtn{
+  width: 100%;
+  margin-top: 24px;
+  background: rgba(255,255,255,0.86);
+  color: rgba(15, 23, 42, 0.75);
+  font-size: 14px;
+  font-weight: 700;
+  border-color: rgba(15, 23, 42, 0.14);
+  box-shadow: 0 10px 20px rgba(2, 6, 23, 0.10);
+}
+#resetBtn:active{ opacity: 0.78; }
+
+/* ===== Result ===== */
+#result, #total{
+  margin-top: 16px;
+  font-size: 18px;
+}
+#result{ white-space: pre-line; line-height: 1.5; }
+
+/* tier：赤/青/緑/紫のみ */
+#result.tier-bad{ color: #dc2626; }
+
+#result.tier-blue{
+  color: #2563eb;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+#result.tier-green{
+  color: #16a34a;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+#result.tier-purple{
+  color: #7c3aed;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.12);
+}
+
+/* ===== Progress ===== */
+progress{
+  width: 100%;
+  height: 18px;
+  margin-top: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+}
+progress::-webkit-progress-bar{
+  background: rgba(255,255,255,0.65);
+  border-radius: 999px;
+}
+progress::-webkit-progress-value{
+  background: linear-gradient(90deg, #ffe680, var(--yellow), #f7c800);
+  border-radius: 999px;
+}
+
+/* ===== Machine info ===== */
+.machine-info{ 
+ 
+  background: rgba(216, 216, 216, 0.55);   /* ← 白を弱める */
+  border: 1px solid rgba(15,23,42,0.08);
+  border-radius: 12px;
+  padding: 10px 12px;
+
+}
+
+.info-lines p{
+  margin: 8px 0;
+  color: var(--text-sub);
+}
+
+/* ★常時モバイル縦配置 */
+.machine-row{
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.machine-label{ width: 100%; }
+
+/* 等価ボーダー */
+.equivalent-border{
+  font-size: 0.95rem;
+  color: rgba(15, 23, 42, 0.85);
+  font-weight: 600;
+  margin: 0;
+  margin-bottom: 10px;   /* ← 図柄揃いから距離を取る */
+  margin-left: 0.4em;    /* 機種名寄りの視覚調整 */
+  margin-left: 1em;   /* ← ここがポイント */
+  padding-left: 0.2em;
+  line-height: 1.2;
+  white-space: nowrap;
+  text-align: left;
+}
+
+/* 図柄揃い確率 × RUSH突入率 */
+.rate-row{
+  display: flex;
+  flex-wrap: wrap;
+  color: rgba(15,23,42,0.78);
+  gap: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.92;
+}
+.rate-row p{ margin: 0; }
+
+/* ボーダーフェード更新 */
+.equivalent-border{ transition: opacity 0.15s ease; }
+.equivalent-border.is-updating{ opacity: 0; }
+
+/* ===== Invest buttons ===== */
+.invest-buttons{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.invest-row{ display: flex; gap: 8px; }
+
+.chip{
+  flex: 1;
+  padding: 14px 0;
+  border-radius: var(--r-chip);
+  border: 1px solid rgba(2, 6, 23, 0.14);
+  cursor: pointer;
+
+  /* 背景固定（白化防止） */
+  background: linear-gradient(180deg, #4fc3f7 0%, #2196f3 100%);
+  color: #ffffff;
+
+  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+  box-shadow: 0 8px 16px rgba(2, 6, 23, 0.12);
+
+  transition: transform 0.08s ease, filter 0.12s ease, box-shadow 0.12s ease;
+}
+
+.chip:hover{ filter: brightness(1.03); }
+
+.chip.sub{
+  background: linear-gradient(180deg, #f87171 0%, #dc2626 100%);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.30);
+}
+
+.chip.clear{
+  background: linear-gradient(180deg, #e5e7eb 0%, #cbd5e1 100%);
+  color: #334155;
+  text-shadow: none;
+}
+
+/* iOS: 投資ボタンエリアだけダブルタップズーム等を抑止 */
+.invest-buttons,
+.invest-buttons *{
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+/* ===== 機種セレクトのズレ修正 ===== */
+.machine-row{
+  width: 100%;
+}
+
+.machine-label{
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* label の左右padding分で幅計算が崩れないようにする */
+.machine-label select{
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.note{
+  font-size: 0.75rem;
+  color: rgba(15,23,42,0.6);
+  margin-top: 6px;
+}

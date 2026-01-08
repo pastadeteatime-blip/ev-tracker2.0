@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>期待値トラッカー</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <!-- ロゴ -->
+  <h1 class="logo" aria-label="期待値トラッカー">
+  <img
+    src="./assets/logo-ev-tracker.png"
+    alt="期待値トラッカー"
+    class="app-logo"
+    decoding="async"
+    loading="eager"
+  />
+</h1>
+
+  <!-- 入力エリア -->
+  <main class="container">
+    <section class="card">
+      <div class="machine-row">
+  <label class="machine-label">
+    機種
+    <select id="machineSelect"></select>
+  </label>
+
+  <!-- 右側：等価交換ボーダー（小さめ表示） -->
+  <p id="infoBorder" class="equivalent-border">ボーダー：— 回/k</p>
+</div>
+
+      <!-- 機種情報カード（labelの外！） -->
+<section class="card machine-info" id="machineInfo" aria-label="機種情報">
+  <div class="info-lines">
+    <div class="rate-row">
+      <p id="infoJackpot">図柄揃い確率：—</p>
+      <p id="infoRush">ラッシュ突入率：—</p>
+    </div>
+  </div>
+</section>
+
+
+      <div class="grid-2">
+  <label>
+    開始時  データランプ回転数
+    <input type="number" id="startSpin" inputmode="numeric" placeholder="例：0" />
+  </label>
+
+  <label>
+    終了時  データランプ回転数
+    <input type="number" id="currentSpin" inputmode="numeric" placeholder="例：120" />
+  </label>
+</div>
+
+
+      <label>
+        投資額
+        <input type="number" id="investYen" value="0" inputmode="numeric" min="0" step="500"/>
+      </label>
+
+      <div class="invest-buttons" role="group" aria-label="投資額の操作">
+        <!-- 上段：加算 -->
+        <div class="invest-row">
+          <button type="button" class="chip" id="add500">+500円</button>
+          <button type="button" class="chip" id="add1000">+1000円</button>
+          <button type="button" class="chip" id="add5000">+5000円</button>
+        </div>
+
+        <!-- 下段：修正 -->
+        <div class="invest-row">
+          <button type="button" class="chip sub" id="sub500">−500円</button>
+          <button type="button" class="chip clear" id="clearInvest">クリア</button>
+        </div>
+      </div>
+
+      <button type="button" id="calcBtn">計算</button>
+      <p id="result" aria-live="polite"></p>
+    </section>
+
+    <!-- 累計 -->
+    <section class="card">
+      <p id="totalSpin">累計回転数：0</p>
+      <p id="totalInvest">累計投資：0 円</p>
+      <p id="avgRate">累計回転率：0 回/k</p>
+      <p id="total">累積期待値：0 玉</p>
+
+      <!-- 目標（100万円固定） -->
+      <div class="goal">
+        <p class="goal-title">目標期待値：1,000,000 円</p>
+        <progress id="goalBar" value="0" max="1000000"></progress>
+        <p id="percent">達成率：0.00 %</p>
+      </div>
+
+<p class="note">※期待値計算は等価換算です</p>
+
+      <button type="button" id="resetBtn">リセット</button>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
