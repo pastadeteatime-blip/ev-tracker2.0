@@ -950,7 +950,7 @@ function resetSelectedMachineTotals() {
   // ★ログも消す
   clearSession();
   resetSpinLog(true);
-
+  setCounterInputLocked(false);
   updateView();
 
 }
@@ -1051,4 +1051,5 @@ function init() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+
 
