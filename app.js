@@ -253,6 +253,7 @@ function resetSpinLog(skipSave = false) {
 
   renderSpinLog();
   setLogMode("main");
+　setCounterInputLocked(false);
   if (!skipSave) saveSession();
 }
 
@@ -1050,3 +1051,4 @@ function init() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+
