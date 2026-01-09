@@ -414,3 +414,16 @@ input[type="number"]{
   -moz-appearance: textfield; /* Firefox */
   appearance: textfield;
 }
+
+/* RUSH表記出玉 / ヤメ持ち玉 パネルは全幅にする */
+#payoutPanel,
+#endBallsPanel{
+  grid-column: 1 / -1;   /* 4列ぶん全部使う */
+  width: 100%;
+}
+
+/* パネル内の確定ボタンも全幅に */
+#payoutPanel button,
+#endBallsPanel button{
+  width: 100%;
+}
