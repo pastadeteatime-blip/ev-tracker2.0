@@ -251,16 +251,15 @@ progress::-webkit-progress-value{
 
 /* 図柄揃い確率 × RUSH突入率 */
 .rate-row{
-  display: flex;
-  flex-wrap: wrap;
-  color: rgba(15,23,42,0.78);
+  display: flex;        /* ← 横並び維持 */
   gap: 10px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  opacity: 0.92;
+  margin-top: 4px;      /* ← 28交換ボーダーの直下に来る */
 }
-.rate-row p{ margin: 0; }
+.rate-row p{ 
+  font-size: 0.85rem;   /* ← やや小さく */
+  opacity: 0.75;        /* ← 少しだけ薄く */
+  font-weight: 500;
+  margin: 0; }
 
 /* ボーダーフェード更新 */
 .equivalent-border{ transition: opacity 0.15s ease; }
@@ -330,4 +329,88 @@ progress::-webkit-progress-value{
   font-size: 0.75rem;
   color: rgba(15,23,42,0.6);
   margin-top: 6px;
+}
+
+.section-title{
+  margin: 0 0 10px;
+  font-size: 1rem;
+  opacity: 0.9;
+}
+
+.log-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.chip.state{
+  background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
+  color:#fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.22);
+}
+
+.log-meta{
+  margin: 10px 0 0;
+  color: rgba(15,23,42,0.72);
+  font-size: 0.9rem;
+}
+
+.log-list{
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.log-item{
+  background: rgba(255,255,255,0.72);
+  border: 1px solid rgba(2,6,23,0.10);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display:flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.log-item small{ opacity: 0.75; }
+
+.is-hidden{ display:none !important; }
+
+/* ボタン全体の枠を固定 */
+.log-actions{
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+/* 中の2グループは“重ねる” */
+.log-actions-main,
+.log-actions-after{
+  display: contents; /* ← ここが重要 */
+}
+
+/* すべてのボタンを均等幅に */
+.log-actions button{
+  width: 100%;
+}
+
+.is-disabled{
+  opacity: 0.55;
+  filter: grayscale(0.2);
+}
+
+#payoutPanel{margin-top: 10px;}
+#endBallsPanel{margin-top: 10px;}
+
+/* number の上下スピナーを消す */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button{
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"]{
+  -moz-appearance: textfield; /* Firefox */
+  appearance: textfield;
 }
