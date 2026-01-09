@@ -5,42 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>期待値トラッカー</title>
   <link rel="stylesheet" href="style.css" />
-  
+
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icon-180.png?v=8">
   <link rel="icon" href="./assets/icon-192.png?v=8">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="期待値トラッカー">
-
 </head>
 
 <body>
   <!-- ロゴ -->
   <h1 class="logo" aria-label="期待値トラッカー">
-  <img
-    src="./assets/logo-ev-tracker.png"
-    alt="期待値トラッカー"
-    class="app-logo"
-    decoding="async"
-    loading="eager"
-  />
-</h1>
+    <img
+      src="./assets/logo-ev-tracker.png"
+      alt="期待値トラッカー"
+      class="app-logo"
+      decoding="async"
+      loading="eager"
+    />
+  </h1>
 
-  <!-- 入力エリア -->
   <main class="container">
-    <section class="card">
-      <div class="machine-row">
-  <label class="machine-label">
-    機種
-    <select id="machineSelect"></select>
-  </label>
 
-  <!-- 右側：等価交換ボーダー（小さめ表示） -->
-  <p id="infoBorder" class="equivalent-border">ボーダー：— 回/k</p>
-</div>
+   <!-- 機種選択 + 機種情報 -->
+<section class="card" aria-label="機種情報">
+  <div class="machine-row">
+    <label class="machine-label">
+      機種
+      <select id="machineSelect"></select>
+    </label>
 
-      <!-- 機種情報カード（labelの外！） -->
-<section class="card machine-info" id="machineInfo" aria-label="機種情報">
-  <div class="info-lines">
+    <p id="infoBorder" class="equivalent-border">ボーダー：— 回/k</p>
+
+    <!-- ボーダーの下に横並び -->
     <div class="rate-row">
       <p id="infoJackpot">図柄揃い確率：—</p>
       <p id="infoRush">ラッシュ突入率：—</p>
@@ -49,33 +45,77 @@
 </section>
 
 
-      <div class="grid-2">
-  <label>
-    開始時  データランプ回転数
-    <input type="number" id="startSpin" inputmode="numeric" placeholder="例：0" />
-  </label>
+    <!-- 回転ログ -->
+    <section class="card">
+      <h2 class="section-title">回転ログ</h2>
 
+      <div class="log-input">
+        <label>
+          データカウンター回転数
+          <input type="number" id="counterNow" inputmode="numeric" />
+        </label>
+
+        <div class="log-actions" role="group" aria-label="区切りの登録">
+          <!-- 通常時に見える -->
+  <div class="log-actions-main" id="logActionsMain">
+    <button type="button" class="chip state" id="btnStart">開始</button>
+    <button type="button" class="chip state" id="btnHit">当たり</button>
+    <button type="button" class="chip sub" id="btnUndo">戻す</button>
+    <button type="button" class="chip clear" id="btnStop">ヤメ</button>
+  </div>
+
+  <!-- 当たり後に見える -->
+  <div class="log-actions-after is-hidden" id="logActionsAfter">
+    <button type="button" class="chip state" id="btnTan">単発</button>
+    <button type="button" class="chip state" id="btnRushEnd">RUSH終了</button>
+    <button type="button" class="chip state" id="btnLtEnd">LT終了</button>
+    <button type="button" class="chip sub" id="btnUndo2">戻す</button>
+  </div>
+
+  <!-- 表記出玉 入力パネル（RUSH/LTの時だけ出す） -->
+  <div id="payoutPanel" class="is-hidden">
   <label>
-    終了時  データランプ回転数
-    <input type="number" id="currentSpin" inputmode="numeric" placeholder="例：120" />
+    リザルト表記出玉
+    <input type="number" id="payoutNow" inputmode="numeric" />
   </label>
+  <button type="button" class="chip state" id="btnPayoutConfirm">表記出玉を確定</button>
+  </div>
+
+  <!-- 持ち玉 入力パネル（ヤメの時だけ出す） -->
+ <div id="endBallsPanel" class="is-hidden">
+  <label>
+    ヤメ時の持ち玉
+    <input type="number" id="endBallsNow" inputmode="numeric" />
+  </label>
+  <button type="button" class="chip state" id="btnEndBallsConfirm">持ち玉を確定</button>
 </div>
 
+</div>
 
+      <p class="log-meta">
+  初当たり回数 /通常回転数：<span id="hitOverTotal">0 / 0</span>
+</p>
+
+
+      </div>
+
+      <div class="log-list" id="logList" aria-label="ログ一覧"></div>
+    </section>
+
+    <!-- 期待値計算 -->
+    <section class="card">
       <label>
         投資額
         <input type="number" id="investYen" value="0" inputmode="numeric" min="0" step="500"/>
       </label>
 
       <div class="invest-buttons" role="group" aria-label="投資額の操作">
-        <!-- 上段：加算 -->
         <div class="invest-row">
           <button type="button" class="chip" id="add500">+500円</button>
           <button type="button" class="chip" id="add1000">+1000円</button>
           <button type="button" class="chip" id="add5000">+5000円</button>
         </div>
 
-        <!-- 下段：修正 -->
         <div class="invest-row">
           <button type="button" class="chip sub" id="sub500">−500円</button>
           <button type="button" class="chip clear" id="clearInvest">クリア</button>
@@ -93,23 +133,18 @@
       <p id="avgRate">累計回転率：0 回/k</p>
       <p id="total">累積期待値：0 玉</p>
 
-      <!-- 目標（100万円固定） -->
       <div class="goal">
         <p class="goal-title">目標期待値：1,000,000 円</p>
         <progress id="goalBar" value="0" max="1000000"></progress>
         <p id="percent">達成率：0.00 %</p>
       </div>
 
-<p class="note">※ボーダー表示は28交換、期待値計算は等価換算です</p>
-
+      <p class="note">※ボーダー表示は28交換、期待値計算は等価換算です</p>
       <button type="button" id="resetBtn">リセット</button>
     </section>
+
   </main>
 
   <script src="app.js"></script>
 </body>
-
 </html>
-
-
-
