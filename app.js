@@ -51,6 +51,8 @@ const MACHINES = [
     jackpot: "1/399",
     rushEntry: "40%",
     restart: { tan: 0, rushEnd: 100 },
+    tanPayout: { disp: 300, net: 280 },
+
   },
   {
     id: "shamanking",
@@ -61,6 +63,7 @@ const MACHINES = [
     jackpot: "1/349",
     rushEntry: "50%",
     restart: { tan: 0, rushEnd: 60, ltEnd: 120 },
+    tanPayout: { disp: 450, net: 360 },
   },
 ];
 
@@ -86,6 +89,7 @@ let totals = {
   totalSpin: 0,
   totalInvestYen: 0,
   totalKInvested: 0,
+  totalConsumedK: 0,
 };
 
 // ===== 回転ログ =====
@@ -174,6 +178,14 @@ function clearSession() {
     localStorage.removeItem(getSessionKey(selectedMachine.id));
   } catch {}
 }
+
+// 入力ロック
+function setCounterInputLocked(locked) {
+  const el = $("counterNow");
+  if (!el) return;
+  el.disabled = locked;
+}
+
 
 // ===== 回転率 tier =====
 function getRateTierClass(rate, border) {
@@ -288,6 +300,9 @@ function addStartEvent() {
     console.error(e);
     alert("開始処理でエラーが出ています（Consoleを確認してください）");
   }
+
+  setCounterInputLocked(false);
+
 }
 
 // ===== 当たり =====
@@ -333,9 +348,10 @@ function addHitEvent() {
   pendingIndex = idx;
 
   input.value = "";
+
   renderSpinLog();
   setLogMode("afterHit");
-
+  setCounterInputLocked(true);
   saveSession();
 }
 
@@ -367,8 +383,9 @@ function confirmHitOutcome(type) {
   nextStartCounter = nextStart;
 
   if (type === "tan") {
-    row.payoutDisp = TAN_PAYOUT_DISP;
-    row.payout     = TAN_PAYOUT_NET;
+    const tp = selectedMachine.tanPayout ?? { disp: TAN_PAYOUT_DISP, net: TAN_PAYOUT_NET };
+     row.payoutDisp = tp.disp;
+     row.payout     = tp.net;
 
     pendingIndex = -1;
 
@@ -384,6 +401,7 @@ function confirmHitOutcome(type) {
 
     renderSpinLog();
     setLogMode("main");
+    setCounterInputLocked(false);
     saveSession();
     return;
   }
@@ -432,6 +450,7 @@ function confirmPayout() {
 
   renderSpinLog();
   setLogMode("main");
+  setCounterInputLocked(false); // 単発のときだけ解除
   saveSession();
 }
 
@@ -451,12 +470,14 @@ function confirmEndBalls() {
   const last = spinLog[spinLog.length - 1];
   if (last && String(last.label).startsWith("ヤメ")) {
     last.label = "ヤメ";
+    last.endBalls = endBallsYame;
   }
 
   $("endBallsPanel")?.classList.add("is-hidden");
   if ($("endBallsNow")) $("endBallsNow").value = "";
 
   renderSpinLog();
+  setCounterInputLocked(false);
   saveSession();
 }
 
@@ -479,6 +500,7 @@ function undoSpinEventUnified() {
 
     renderSpinLog();
     setLogMode("main");
+    setCounterInputLocked(false);
     saveSession();
     return;
   }
@@ -571,6 +593,7 @@ function addStopEvent() {
     label: "ヤメ（持ち玉未確定）",
     payout: null,
     payoutDisp: null,
+    endBalls: null,
   });
 
   nextStartCounter = now;
@@ -582,6 +605,7 @@ function addStopEvent() {
 
   renderSpinLog();
   setLogMode("main");
+  setCounterInputLocked(true);
   saveSession();
 }
 
@@ -698,7 +722,7 @@ function loadTotalsForSelectedMachine() {
       totalKInvested: Number(obj.totalKInvested) || 0,
     };
   } catch {
-    totals = { totalExpectBalls: 0, totalSpin: 0, totalInvestYen: 0, totalKInvested: 0 };
+    totals = { totalExpectBalls: 0, totalSpin: 0, totalInvestYen: 0, totalKInvested: 0, totalConsumedK: Number(obj.totalConsumedK) || 0, };
   }
 }
 
@@ -752,7 +776,7 @@ function updateView() {
 
   const avgRate = totals.totalKInvested > 0 ? totals.totalSpin / totals.totalKInvested : 0;
   const rateEl = $("avgRate");
-  if (rateEl) rateEl.innerText = `累計回転率：${fmtRate2(avgRate)} 回/k`;
+  if (rateEl) rateEl.innerText = `累計回転率：${fmtRate1(avgRate)} 回/k`;
 
   const totalEvYen = totals.totalExpectBalls * YEN_PER_BALL;
 
@@ -792,13 +816,16 @@ function renderSpinLog() {
     const disp = (x.payoutDisp ?? x.payout);
     const payoutText =
       (disp === null || disp === undefined) ? "" : ` / 表記出玉：${disp}玉`;
+    const endBallsText =
+      (x.endBalls === null || x.endBalls === undefined) ? "" : ` / 持ち玉：${x.endBalls}玉`;
+
 
     const row = document.createElement("div");
     row.className = "log-item";
     row.innerHTML = `
       <div>
         <div>${x.label}</div>
-        <small>${x.from} → ${x.to}（+${x.add}回）${payoutText}</small>
+        <small>${x.from} → ${x.to}（+${x.add}回）${payoutText}${endBallsText}</small>
       </div>
       <div><small>#${i + 1}</small></div>
     `;
