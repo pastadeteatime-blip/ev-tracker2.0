@@ -79,6 +79,7 @@ function getSessionKey(machineId) {
 
 // ===== 状態 =====
 let selectedMachine = MACHINES[0];
+let currentGoalIndex = 0;
 
 // 投資
 let investYen = 0;
@@ -253,7 +254,7 @@ function resetSpinLog(skipSave = false) {
 
   renderSpinLog();
   setLogMode("main");
-　setCounterInputLocked(false);
+  setCounterInputLocked(false);
   if (!skipSave) saveSession();
 }
 
@@ -627,16 +628,21 @@ function renderMachineInfo(animateBorder = false) {
   const borderText = `28交換ボーダー：${fmtBorder(borderVal)} 回/k`;
 
   if (borderEl) {
-    if (animateBorder) {
-      borderEl.classList.add("is-updating");
-      setTimeout(() => {
+  if (animateBorder) {
+    borderEl.classList.add("is-updating");
+    borderEl.innerText = "";
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
         borderEl.innerText = borderText;
         borderEl.classList.remove("is-updating");
-      }, 150);
-    } else {
-      borderEl.innerText = borderText;
-    }
+      });
+    });
+  } else {
+    borderEl.innerText = borderText;
   }
+}
+
 
   jackpotEl && (jackpotEl.innerText = `図柄揃い確率：${m?.jackpot ?? "—"}`);
   rushEl && (rushEl.innerText = `ラッシュ突入率：${m?.rushEntry ?? "—"}`);
@@ -661,6 +667,8 @@ function initMachineSelect() {
   sel.value = selectedMachine.id;
 
   loadTotalsForSelectedMachine();
+
+
 
   sel.addEventListener("change", () => {
     const id = sel.value;
@@ -710,7 +718,13 @@ function loadTotalsForSelectedMachine() {
   const raw = localStorage.getItem(key);
 
   if (!raw) {
-    totals = { totalExpectBalls: 0, totalSpin: 0, totalInvestYen: 0, totalKInvested: 0 };
+    totals = {
+      totalExpectBalls: 0,
+      totalSpin: 0,
+      totalInvestYen: 0,
+      totalKInvested: 0,
+      totalConsumedK: 0,
+    };
     return;
   }
 
@@ -721,11 +735,19 @@ function loadTotalsForSelectedMachine() {
       totalSpin: Number(obj.totalSpin) || 0,
       totalInvestYen: Number(obj.totalInvestYen) || 0,
       totalKInvested: Number(obj.totalKInvested) || 0,
+      totalConsumedK: Number(obj.totalConsumedK) || 0,
     };
   } catch {
-    totals = { totalExpectBalls: 0, totalSpin: 0, totalInvestYen: 0, totalKInvested: 0, totalConsumedK: Number(obj.totalConsumedK) || 0, };
+    totals = {
+      totalExpectBalls: 0,
+      totalSpin: 0,
+      totalInvestYen: 0,
+      totalKInvested: 0,
+      totalConsumedK: 0,
+    };
   }
 }
+
 
 function saveTotalsForSelectedMachine() {
   const key = getTotalsKey(selectedMachine.id);
@@ -781,18 +803,41 @@ function updateView() {
 
   const totalEvYen = totals.totalExpectBalls * YEN_PER_BALL;
 
-  const goalBar = $("goalBar");
-  if (goalBar) {
-    goalBar.max = GOAL_YEN;
-    goalBar.value = Math.max(0, Math.min(GOAL_YEN, totalEvYen));
-  }
-
-  const percentEl = $("percent");
-  if (percentEl) {
-    const pct = GOAL_YEN > 0 ? (totalEvYen / GOAL_YEN) * 100 : 0;
-    percentEl.innerText = `達成率：${fmtRate2(Math.max(0, pct))} %`;
-  }
+// 段階目標
+while (
+  currentGoalIndex < GOAL_STEPS.length - 1 &&
+  totalEvYen >= GOAL_STEPS[currentGoalIndex]
+) {
+  currentGoalIndex++;
 }
+
+const goal = GOAL_STEPS[currentGoalIndex];
+
+// プログレスバー
+const goalBar = $("goalBar");
+if (goalBar) {
+  goalBar.max = goal;
+  goalBar.value = Math.min(goal, totalEvYen);
+
+  goalBar.classList.remove("goal-blue", "goal-yellow", "goal-green", "goal-red", "goal-rainbow");
+  goalBar.classList.add(getGoalColorClass(currentGoalIndex));
+}
+
+
+// 達成率
+const percentEl = $("percent");
+if (percentEl) {
+  const pct = goal > 0 ? (totalEvYen / goal) * 100 : 0;
+  percentEl.innerText = `達成率：${fmtRate2(Math.min(100, pct))} %`;
+}
+
+// タイトル
+const goalTitle = document.querySelector(".goal-title");
+if (goalTitle) {
+  goalTitle.innerText = `目標期待値：${fmtInt(goal)} 円`;
+}
+} 
+
 
 // ===== 回転ログ描画 =====
 function renderSpinLog() {
@@ -933,7 +978,16 @@ function calcNetFromDisplayedPayout(disp) {
 function resetSelectedMachineTotals() {
   if (!confirm(`「${selectedMachine.name}」の累積データをリセットしますか？`)) return;
 
-  totals = { totalExpectBalls: 0, totalSpin: 0, totalInvestYen: 0, totalKInvested: 0 };
+  totals = {
+    totalExpectBalls: 0,
+    totalSpin: 0,
+    totalInvestYen: 0,
+    totalKInvested: 0,
+    totalConsumedK: 0,
+  };
+
+  currentGoalIndex = 0;
+
   saveTotalsForSelectedMachine();
 
   const resultEl = $("result");
@@ -947,12 +1001,58 @@ function resetSelectedMachineTotals() {
 
   setInvestYen(0);
 
-  // ★ログも消す
   clearSession();
   resetSpinLog(true);
   setCounterInputLocked(false);
-  updateView();
 
+  updateView();   // ← これ重要
+}
+
+
+function resetTodayLog() {
+  if (!confirm("当日の回転ログをリセットしますか？")) return;
+
+  // 回転ログ系だけ初期化
+  spinLog = [];
+  pendingIndex = -1;
+  payoutConfirmIndex = -1;
+  endBallsPending = false;
+  endBallsYame = null;
+  nextStartCounter = 0;
+  hasStarted = false;
+
+  // 入力・UIを元に戻す
+  setCounterInputLocked(false);
+  updateStartButton();
+
+  $("counterNow") && ($("counterNow").value = "");
+  $("payoutPanel")?.classList.add("is-hidden");
+  $("endBallsPanel")?.classList.add("is-hidden");
+
+  renderSpinLog();
+  setLogMode("main");
+
+  // ★累計は触らない／セッションだけ消す
+  clearSession();
+}
+
+// ===== 段階目標（円）=====
+const GOAL_STEPS = [
+  10_000,
+  30_000,
+  100_000,
+  500_000,
+  1_000_000,
+];
+
+function getGoalColorClass(index) {
+  switch (index) {
+    case 0: return "goal-blue";     // 1万
+    case 1: return "goal-yellow";   // 3万
+    case 2: return "goal-green";    // 10万
+    case 3: return "goal-red";      // 50万
+    default: return "goal-rainbow"; // 100万
+  }
 }
 
 // ===== iOS: 投資ボタンの連打ズーム対策（投資ボタンだけ） =====
@@ -1003,6 +1103,7 @@ function enableInvestFastTap(areaSelector) {
 function init() {
   initMachineSelect();
   renderMachineInfo(false);
+  
 
   $("btnStart")?.addEventListener("click", addStartEvent);
   $("btnHit")?.addEventListener("click", addHitEvent);
@@ -1014,6 +1115,7 @@ function init() {
   $("btnStop")?.addEventListener("click", addStopEvent);
   $("btnEndBallsConfirm")?.addEventListener("click", confirmEndBalls);
   $("btnPayoutConfirm")?.addEventListener("click", confirmPayout);
+  $("resetLogBtn")?.addEventListener("click", resetTodayLog);
 
   $("add500")?.addEventListener("click", () => addInvest(500));
   $("add1000")?.addEventListener("click", () => addInvest(1000));
@@ -1043,6 +1145,8 @@ function init() {
     resetSpinLog();
   }
 
+
+ currentGoalIndex = 0;
   updateStartButton();
   updateView();
   renderMachineInfo(false);
@@ -1051,5 +1155,3 @@ function init() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
-
-
