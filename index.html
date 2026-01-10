@@ -106,10 +106,14 @@
   初当たり回数 /通常回転数：<span id="hitOverTotal">0 / 0</span>
 </p>
 
-
       </div>
 
       <div class="log-list" id="logList" aria-label="ログ一覧"></div>
+
+      <button type="button" id="resetLogBtn" class="chip clear log-reset-btn">
+      当日のログをリセット
+      </button>
+
     </section>
 
     <!-- 期待値計算 -->
@@ -144,7 +148,7 @@
       <p id="total">累積期待値：0 玉</p>
 
       <div class="goal">
-        <p class="goal-title">目標期待値：1,000,000 円</p>
+        <p class="goal-title"></p>
         <progress id="goalBar" value="0" max="1000000"></progress>
         <p id="percent">達成率：0.00 %</p>
       </div>
@@ -158,4 +162,3 @@
   <script src="app.js"></script>
 </body>
 </html>
-
