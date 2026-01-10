@@ -240,14 +240,19 @@ progress::-webkit-progress-value{
   font-size: 0.95rem;
   color: rgba(15, 23, 42, 0.85);
   font-weight: 600;
+  min-height: 1.4em;
   margin: 0;
-  margin-bottom: 10px;   /* ← 図柄揃いから距離を取る */
+  margin-bottom: 8px;   /* ← 図柄揃いから距離を取る */
   margin-left: 1em;   /* ← ここがポイント */
   padding-left: 0.2em;
   line-height: 1.2;
+  transition: opacity 0.15s ease;
   white-space: nowrap;
   text-align: left;
 }
+
+.equivalent-border.is-updating{opacity: 0;}
+
 
 /* 図柄揃い確率 × RUSH突入率 */
 .rate-row{
@@ -442,4 +447,45 @@ input:disabled{
   color: rgba(15, 23, 42, 0.6);
   margin-top: -10px;
   margin-bottom: 12px;
+}
+
+/* 当日のログリセット（回転ログカード下） */
+.log-reset-btn{
+  width: 100%;
+  display: block;
+  margin-top: 12px;
+}
+
+/* ===== 達成率バー：段階色（最後に置く） ===== */
+progress.goal-blue::-webkit-progress-value{
+  background: linear-gradient(90deg, #60a5fa, #2563eb);
+}
+progress.goal-yellow::-webkit-progress-value{
+  background: linear-gradient(90deg, #fde68a, #f59e0b);
+}
+progress.goal-green::-webkit-progress-value{
+  background: linear-gradient(90deg, #86efac, #16a34a);
+}
+progress.goal-red::-webkit-progress-value{
+  background: linear-gradient(90deg, #fca5a5, #dc2626);
+}
+progress.goal-rainbow::-webkit-progress-value{
+  background: linear-gradient(90deg, #ef4444, #f59e0b, #eab308, #22c55e, #3b82f6, #8b5cf6);
+}
+
+/* Firefox */
+progress.goal-blue::-moz-progress-bar{
+  background: linear-gradient(90deg, #60a5fa, #2563eb);
+}
+progress.goal-yellow::-moz-progress-bar{
+  background: linear-gradient(90deg, #fde68a, #f59e0b);
+}
+progress.goal-green::-moz-progress-bar{
+  background: linear-gradient(90deg, #86efac, #16a34a);
+}
+progress.goal-red::-moz-progress-bar{
+  background: linear-gradient(90deg, #fca5a5, #dc2626);
+}
+progress.goal-rainbow::-moz-progress-bar{
+  background: linear-gradient(90deg, #ef4444, #f59e0b, #eab308, #22c55e, #3b82f6, #8b5cf6);
 }
