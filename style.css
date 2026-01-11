@@ -257,8 +257,9 @@ progress::-webkit-progress-value{
 /* 図柄揃い確率 × RUSH突入率 */
 .rate-row{
   display: flex;        /* ← 横並び維持 */
-  gap: 10px;
+  gap: 30px;
   margin-top: 4px;      /* ← 28交換ボーダーの直下に来る */
+  margin-left: 1em;
 }
 .rate-row p{ 
   font-size: 0.85rem;   /* ← やや小さく */
@@ -488,4 +489,27 @@ progress.goal-red::-moz-progress-bar{
 }
 progress.goal-rainbow::-moz-progress-bar{
   background: linear-gradient(90deg, #ef4444, #f59e0b, #eab308, #22c55e, #3b82f6, #8b5cf6);
+}
+
+.invest-confirmed{
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+  color: rgba(15,23,42,0.75);
+}
+
+/* 期待値確定ボタン（新カード側） */
+#finalCalcBtn{
+  width: 100%;
+  background: linear-gradient(180deg, var(--yellow) 0%, var(--yellow-deep) 100%);
+  color: #4a3600;
+  border: 1px solid rgba(74, 54, 0, 0.35);
+  box-shadow: 0 4px 0 rgba(74, 54, 0, 0.35), 0 10px 24px rgba(0,0,0,0.18);
+}
+
+#finalCalcBtn{
+  width: 100%;
+  background: linear-gradient(180deg, #bbf7d0 0%, #22c55e 100%);
+  color: #14532d;
+  border: 1px solid rgba(20, 83, 45, 0.3);
+  box-shadow: 0 3px 0 rgba(20, 83, 45, 0.3), 0 8px 16px rgba(0,0,0,0.15);
 }
