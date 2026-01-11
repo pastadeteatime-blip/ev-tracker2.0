@@ -307,13 +307,14 @@ function addStartEvent() {
     nextStartCounter = Math.floor(now);
 
     spinLog.push({
-      from: null,
+      from: nextStartCounter,
       to: null,
       add: 0,
       nextStart: nextStartCounter,
       label: "開始",
       payout: null,
       payoutDisp: null,
+      startAt: nextStartCounter,
     });
 
     hasStarted = true;
@@ -1012,10 +1013,20 @@ function renderSpinLog() {
     const fromText = (x.from === null || x.from === undefined) ? "" : x.from;
     const toText   = (x.to === null || x.to === undefined) ? "" : x.to;
 
-    const rangeText =
-      toText !== ""
-        ? `${fromText} → ${toText}`
-        : `${fromText}`;
+    let rangeText = "";
+
+if (x.label === "開始") {
+  const s = Number(x.from);
+  rangeText = Number.isFinite(s) ? `${s} ` : "";
+} else {
+  const fromText = (x.from === null || x.from === undefined) ? "" : x.from;
+  const toText   = (x.to === null || x.to === undefined) ? "" : x.to;
+
+  rangeText =
+    toText !== ""
+      ? `${fromText} → ${toText}`
+      : `${fromText}`;
+}
 
     const addText =
       x.add > 0
