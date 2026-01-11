@@ -1030,12 +1030,12 @@ if (x.label === "開始") {
 
     const addText =
       x.add > 0
-        ? `（+${x.add}回）`
+        ? `（+${x.add}）`
         : ""; // ★ +0回は表示しない
 
     const investText =
   x.investK && x.investK > 0
-    ? ` / 投資：${x.investK.toFixed(1)}k`
+    ? ` / ${x.investK.toFixed(1)}k`
     : "";
 
     const disp = (x.payoutDisp ?? x.payout);
