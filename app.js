@@ -91,6 +91,7 @@ let totals = {
   totalInvestYen: 0,
   totalKInvested: 0,
   totalConsumedK: 0,
+  totalHitCount: 0,
 };
 
 // ===== 回転ログ =====
@@ -523,6 +524,7 @@ function undoSpinEventUnified() {
 
     renderSpinLog();
     setLogMode("afterHit");
+    setCounterInputLocked(true);
     saveSession();
     return;
   }
@@ -541,21 +543,82 @@ function undoSpinEventUnified() {
 
     renderSpinLog();
     setLogMode("main");
+    setCounterInputLocked(false);
     saveSession();
     return;
   }
 
-  // それ以外：最後のログを1つ削る
-  if (spinLog.length <= 1) return;
+    // ★確定済み（単発/RUSH/LT）を「当たり（未確定）」に戻す
+  // 例： [ ... , "単発" , "開始" ] みたいになってるので
+  //      最後の「開始」を消して、1つ前を未確定に戻す
+  if (
+    pendingIndex === -1 &&
+    payoutConfirmIndex === -1 &&
+    spinLog.length >= 2
+  ) {
+    const last = spinLog[spinLog.length - 1];
+    const prev = spinLog[spinLog.length - 2];
+
+    const prevIsOutcome =
+      prev.label === "単発" || prev.label === "RUSH終了" || prev.label === "LT終了";
+
+    const lastIsAutoStart =
+      last.label === "開始" && (Number(last.add) || 0) === 0;
+
+    if (prevIsOutcome && lastIsAutoStart) {
+      // 末尾の「開始」を消す
+      spinLog.pop();
+
+      // 1つ前（確定済み）を未確定へ戻す
+      prev.label = "当たり（未確定）";
+      prev.nextStart = null;
+      prev.payout = null;
+      prev.payoutDisp = null;
+
+      pendingIndex = spinLog.length - 1; // prevのindex
+
+      // UI：当たり種別選択画面へ
+      setLogMode("afterHit");
+      setCounterInputLocked(true);
+
+      renderSpinLog();
+      saveSession();
+      return;
+    }
+  }
+
+
+  // 最後のログを1つ削る（開始だけの状態も戻せる）
+  if (spinLog.length === 0) return;
   spinLog.pop();
+
+  // 開始行まで消えたら開始未実施に戻す
+  if (spinLog.length === 0) {
+    hasStarted = false;
+    pendingIndex = -1;
+    payoutConfirmIndex = -1;
+    endBallsPending = false;
+    endBallsYame = null;
+    nextStartCounter = 0;
+    setCounterInputLocked(false);
+    updateStartButton();
+
+    renderSpinLog();
+    setLogMode("main");
+    saveSession();
+    return;
+  }
 
   const last = spinLog[spinLog.length - 1];
   nextStartCounter = Number(last?.nextStart) || nextStartCounter;
 
   renderSpinLog();
   setLogMode("main");
+  setCounterInputLocked(false);
   saveSession();
 }
+
+
 
 // ===== ヤメ =====
 function addStopEvent() {
@@ -736,6 +799,7 @@ function loadTotalsForSelectedMachine() {
       totalInvestYen: Number(obj.totalInvestYen) || 0,
       totalKInvested: Number(obj.totalKInvested) || 0,
       totalConsumedK: Number(obj.totalConsumedK) || 0,
+      totalHitCount: Number(obj.totalHitCount) || 0,
     };
   } catch {
     totals = {
@@ -783,6 +847,7 @@ function calcExpectationBalls(rotationRate, spinCount) {
 
 // ===== 画面更新 =====
 function updateView() {
+  // ===== 累積期待値 =====
   const totalEl = $("total");
   if (totalEl) {
     const b = totals.totalExpectBalls;
@@ -791,52 +856,83 @@ function updateView() {
     setSignedColor(totalEl, b);
   }
 
+  // ===== 累計確率（初当たり） =====
   const spinEl = $("totalSpin");
-  if (spinEl) spinEl.innerText = `累計回転数：${fmtInt(totals.totalSpin)}`;
+  if (spinEl) {
+    const hit = totals.totalHitCount || 0;
+    const spin = totals.totalSpin || 0;
 
+    let rateText = "—";
+    if (hit > 0 && spin > 0) {
+      rateText = `1/${Math.round(spin / hit)}`;
+    }
+
+    spinEl.innerText = `累計確率：${hit} / ${fmtInt(spin)} = ${rateText}`;
+  }
+
+  // ===== 累計投資 =====
   const invEl = $("totalInvest");
-  if (invEl) invEl.innerText = `累計投資：${fmtInt(totals.totalInvestYen)} 円`;
+  if (invEl) {
+    invEl.innerText = `累計投資：${fmtInt(totals.totalInvestYen)} 円`;
+  }
 
-  const avgRate = totals.totalKInvested > 0 ? totals.totalSpin / totals.totalKInvested : 0;
+  // ===== 累計回転率 =====
+  const avgRate =
+    totals.totalKInvested > 0
+      ? totals.totalSpin / totals.totalKInvested
+      : 0;
+
   const rateEl = $("avgRate");
-  if (rateEl) rateEl.innerText = `累計回転率：${fmtRate1(avgRate)} 回/k`;
+  if (rateEl) {
+    rateEl.innerText = `累計回転率：${fmtRate1(avgRate)} 回/k`;
+  }
 
-  const totalEvYen = totals.totalExpectBalls * YEN_PER_BALL;
+  // ===== 段階目標（期待値） =====
+  const totalEvYenRaw = totals.totalExpectBalls * YEN_PER_BALL;
+  const totalEvYen = Math.max(0, totalEvYenRaw); // マイナスは0扱い
 
-// 段階目標
-while (
-  currentGoalIndex < GOAL_STEPS.length - 1 &&
-  totalEvYen >= GOAL_STEPS[currentGoalIndex]
-) {
-  currentGoalIndex++;
+  currentGoalIndex = calcGoalIndex(totalEvYen);
+
+  const prevGoal =
+    currentGoalIndex === 0 ? 0 : GOAL_STEPS[currentGoalIndex - 1];
+  const nextGoal = GOAL_STEPS[currentGoalIndex];
+  const span = Math.max(1, nextGoal - prevGoal);
+
+  const progressInStep = Math.max(
+    0,
+    Math.min(span, totalEvYen - prevGoal)
+  );
+
+  // ===== プログレスバー =====
+  const goalBar = $("goalBar");
+  if (goalBar) {
+    goalBar.max = span;
+    goalBar.value = progressInStep;
+
+    goalBar.classList.remove(
+      "goal-blue",
+      "goal-yellow",
+      "goal-green",
+      "goal-red",
+      "goal-rainbow"
+    );
+    goalBar.classList.add(getGoalColorClass(currentGoalIndex));
+  }
+
+  // ===== 達成率表示 =====
+  const percentEl = $("percent");
+  if (percentEl) {
+    const pct = (progressInStep / span) * 100;
+    percentEl.innerText = `達成率：${fmtRate2(Math.min(100, pct))} %`;
+  }
+
+  // ===== 目標タイトル =====
+  const goalTitle = document.querySelector(".goal-title");
+  if (goalTitle) {
+    goalTitle.innerText = `目標期待値：${fmtInt(nextGoal)} 円`;
+  }
 }
 
-const goal = GOAL_STEPS[currentGoalIndex];
-
-// プログレスバー
-const goalBar = $("goalBar");
-if (goalBar) {
-  goalBar.max = goal;
-  goalBar.value = Math.min(goal, totalEvYen);
-
-  goalBar.classList.remove("goal-blue", "goal-yellow", "goal-green", "goal-red", "goal-rainbow");
-  goalBar.classList.add(getGoalColorClass(currentGoalIndex));
-}
-
-
-// 達成率
-const percentEl = $("percent");
-if (percentEl) {
-  const pct = goal > 0 ? (totalEvYen / goal) * 100 : 0;
-  percentEl.innerText = `達成率：${fmtRate2(Math.min(100, pct))} %`;
-}
-
-// タイトル
-const goalTitle = document.querySelector(".goal-title");
-if (goalTitle) {
-  goalTitle.innerText = `目標期待値：${fmtInt(goal)} 円`;
-}
-} 
 
 
 // ===== 回転ログ描画 =====
@@ -851,7 +947,16 @@ function renderSpinLog() {
   ).length;
 
   const hot = $("hitOverTotal");
-  if (hot) hot.textContent = `${hitCount} / ${totalSpins}`;
+if (hot) {
+  let rateText = "—";
+  if (hitCount > 0 && totalSpins > 0) {
+    const r = totalSpins / hitCount;
+    rateText = `1/${Math.round(r)}`;
+  }
+  hot.textContent = `${hitCount} / ${totalSpins}   =   ${rateText}`;
+}
+
+
 
   if (!list) return;
   list.innerHTML = "";
@@ -891,24 +996,11 @@ function getTotalPayoutFromLog() {
 // ===== 計算 =====
 function calc() {
   const spinCount = getTotalSpinsFromLog();
-  if (spinCount <= 0) {
-    alert("回転ログを入れてください");
-    return;
-  }
-
-  if (payoutConfirmIndex !== -1) {
-    alert("先に「表記出玉を確定」してください");
-    return;
-  }
-
-  if (endBallsPending) {
-    alert("先に「持ち玉を確定」してください");
-    return;
-  }
+  if (spinCount <= 0) {alert("回転ログを入れてください");return;}
+  if (payoutConfirmIndex !== -1) {alert("先に「表記出玉を確定」してください");return;}
+  if (endBallsPending) {alert("先に「持ち玉を確定」してください");return;}
   if (endBallsYame === null || !Number.isFinite(endBallsYame) || endBallsYame < 0) {
-    alert("ヤメ時の持ち玉が未確定です（ヤメ → 持ち玉を確定）");
-    return;
-  }
+    alert("ヤメ時の持ち玉が未確定です（ヤメ → 持ち玉を確定）");return;}
 
   const investK = investYen / 1000;
   if (!Number.isFinite(investK) || investK <= 0) {
@@ -930,10 +1022,19 @@ function calc() {
   const rotationRate = (spinCount / consumedBalls) * 250;
   const todayBalls = calcExpectationBalls(rotationRate, spinCount);
 
+  // ★当日の初当たり回数
+const todayHitCount = spinLog.filter(x =>
+  x.label === "単発" ||
+  x.label === "RUSH終了" ||
+  x.label === "LT終了"
+).length;
+
+
   totals.totalExpectBalls += todayBalls;
   totals.totalSpin += spinCount;
   totals.totalInvestYen += investYen;
   totals.totalKInvested += investK;
+  totals.totalHitCount += todayHitCount;
 
   saveTotalsForSelectedMachine();
 
@@ -984,6 +1085,7 @@ function resetSelectedMachineTotals() {
     totalInvestYen: 0,
     totalKInvested: 0,
     totalConsumedK: 0,
+    totalHitCount: 0,
   };
 
   currentGoalIndex = 0;
@@ -1012,6 +1114,9 @@ function resetSelectedMachineTotals() {
 function resetTodayLog() {
   if (!confirm("当日の回転ログをリセットしますか？")) return;
 
+  // ★投資も当日扱いなのでリセット（累計には影響しない）
+  setInvestYen(0);
+
   // 回転ログ系だけ初期化
   spinLog = [];
   pendingIndex = -1;
@@ -1035,6 +1140,19 @@ function resetTodayLog() {
   // ★累計は触らない／セッションだけ消す
   clearSession();
 }
+
+function calcGoalIndex(totalEvYen) {
+  const v = Math.max(0, Number(totalEvYen) || 0);
+
+  // 「まだ達成していない最初の目標」を返す
+  for (let i = 0; i < GOAL_STEPS.length; i++) {
+    if (v < GOAL_STEPS[i]) return i;
+  }
+
+  // 全部達成したら最後（虹）に固定
+  return GOAL_STEPS.length - 1;
+}
+
 
 // ===== 段階目標（円）=====
 const GOAL_STEPS = [
