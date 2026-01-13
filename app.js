@@ -24,47 +24,8 @@ const TAN_PAYOUT_DISP = 400; // ログ表示用
 const TAN_PAYOUT_NET  = 360; // 計算用（純増）
 
 // ===== 機種DB =====
-const MACHINES = [
-  {
-    id: "madoka3",
-    name: "P魔法少女まどか☆マギカ3",
-    perSpinPayBalls: 14.85,
-    costPer1kBalls: 250,
-    border: { 25: 17.1, 28: 18.0, 30: 18.5, 33: 19.2 },
-    jackpot: "1/199",
-    rushEntry: "50%",
-    restart: { tan: 0, rushEnd: 64, ltEnd: 124 },
-    payoutRule: {
-      baseDisp: 400,
-      baseNet: 360,
-      stepDisp: 1500,
-      stepNet: 1400,
-      unit: 15,
-    },
-  },
-  {
-    id: "megamiCafe",
-    name: "e女神のカフェテラスFLX",
-    perSpinPayBalls: 9.37,
-    costPer1kBalls: 250,
-    border: { 25: 27.4, 28: 28.9, 30: 29.8, 33: 31.2 },
-    jackpot: "1/399",
-    rushEntry: "40%",
-    restart: { tan: 0, rushEnd: 100 },
-    tanPayout: { disp: 300, net: 280 },
-  },
-  {
-    id: "shamanking",
-    name: "eシャーマンキング でっけぇなあver.",
-    perSpinPayBalls: 8.08,
-    costPer1kBalls: 250,
-    border: { 25: 31.7, 28: 33.5, 30: 34.6, 33: 36.2 },
-    jackpot: "1/349",
-    rushEntry: "50%",
-    restart: { tan: 0, rushEnd: 60, ltEnd: 120 },
-    tanPayout: { disp: 450, net: 360 },
-  },
-];
+const MACHINES = window.MACHINES;
+
 
 // localStorage keys（累計）
 const LS_PREFIX = "evTracker_machineTotals_v1_"; // + machineId
@@ -402,6 +363,7 @@ function confirmHitOutcome(type) {
 
   const nextStart = getRestartValue(type); // 仕様：固定値でOK
   const label =
+    type === "charge" ? "チャージ" :
     type === "tan" ? "単発" :
     type === "rushEnd" ? "RUSH終了" : "LT終了";
 
@@ -411,29 +373,34 @@ function confirmHitOutcome(type) {
 
   nextStartCounter = nextStart;
 
-  if (type === "tan") {
-    const tp = selectedMachine.tanPayout ?? { disp: TAN_PAYOUT_DISP, net: TAN_PAYOUT_NET };
-    row.payoutDisp = tp.disp;
-    row.payout     = tp.net;
+  if (type === "tan" || type === "charge") {
+  const payout =
+    type === "charge"
+      ? (selectedMachine.chargePayout ?? { disp: 300, net: 280 })
+      : (selectedMachine.tanPayout ?? { disp: TAN_PAYOUT_DISP, net: TAN_PAYOUT_NET });
 
-    pendingIndex = -1;
+  row.payoutDisp = payout.disp;
+  row.payout     = payout.net;
 
-    spinLog.push({
-      from: nextStartCounter,
-      to: nextStartCounter,
-      add: 0,
-      nextStart: nextStartCounter,
-      label: "開始",
-      payout: null,
-      payoutDisp: null,
-    });
+  pendingIndex = -1;
 
-    renderSpinLog();
-    setLogMode("main");
-    setCounterInputLocked(false);
-    saveSession();
-    return;
-  }
+  spinLog.push({
+    from: nextStartCounter,
+    to: nextStartCounter,
+    add: 0,
+    nextStart: nextStartCounter,
+    label: "開始",
+    payout: null,
+    payoutDisp: null,
+  });
+
+  renderSpinLog();
+  setLogMode("main");
+  setCounterInputLocked(false);
+  saveSession();
+  return;
+}
+
 
   row.payout = null;
   row.payoutDisp = null;
@@ -896,6 +863,27 @@ function calcExpectationBalls(rotationRate, spinCount) {
   return Math.round(expected);
 }
 
+// ★updateViewの外へ移動（グローバルにする）
+function animateProgressBar(barEl, toValue, duration = 650) {
+  if (!barEl) return;
+
+  const startValue = Number(barEl.value) || 0; // 0固定じゃなく現状値から
+  const endValue = Math.max(0, Number(toValue) || 0);
+
+  const start = performance.now();
+
+  const tick = (now) => {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    barEl.value = startValue + (endValue - startValue) * eased;
+
+    if (t < 1) requestAnimationFrame(tick);
+  };
+
+  requestAnimationFrame(tick);
+}
+
+
 // ===== 画面更新 =====
 function updateView() {
   // ===== 累積期待値 =====
@@ -957,7 +945,18 @@ function updateView() {
   const goalBar = $("goalBar");
   if (goalBar) {
     goalBar.max = span;
-    goalBar.value = progressInStep;
+
+// ★目標値を保存（アニメ用）
+goalBar.dataset.targetValue = String(progressInStep);
+
+// ★まだアニメしてないなら 0 で待機（表示された瞬間に伸ばす）
+if (goalBar.dataset.animated !== "1") {
+  goalBar.value = 0;
+} else {
+  // 既に一度表示済みなら通常更新（にょいは初回のみ）
+  goalBar.value = progressInStep;
+}
+
 
     goalBar.classList.remove(
       "goal-blue",
@@ -1132,8 +1131,7 @@ function calc() {
 
   hasStarted = false;
   updateStartButton();
-  resetSpinLog();
-
+  // resetSpinLog(); // ★当日のログは消さない（消すのは「当日のログをリセット」だけ）
   updateView();
 
   // ★計算後に総投資をクリア
@@ -1310,6 +1308,26 @@ function enableInvestFastTap(areaSelector) {
   area.addEventListener("gestureend", (e) => e.preventDefault(), { passive: false });
 }
 
+function updateHitOptionButtons() {
+  const opts = selectedMachine.hitOptions || ["tan", "rushEnd", "ltEnd"];
+
+  const map = {
+    charge: $("btnCharge"),
+    tan: $("btnTan"),
+    rushEnd: $("btnRushEnd"),
+    ltEnd: $("btnLtEnd"),
+  };
+
+  // いったん全部隠す
+  Object.values(map).forEach((btn) => btn && btn.classList.add("is-hidden"));
+
+  // 機種が持つものだけ表示
+  for (const key of opts) {
+    map[key]?.classList.remove("is-hidden");
+  }
+}
+
+
 // ===== 初期化 =====
 function init() {
   initMachineSelect();
@@ -1326,6 +1344,8 @@ function init() {
   $("btnEndBallsConfirm")?.addEventListener("click", confirmEndBalls);
   $("btnPayoutConfirm")?.addEventListener("click", confirmPayout);
   $("resetLogBtn")?.addEventListener("click", resetTodayLog);
+  $("btnCharge")?.addEventListener("click", () => confirmHitOutcome("charge"));
+
 
   $("add500")?.addEventListener("click", () => addInvest(500));
   $("add1000")?.addEventListener("click", () => addInvest(1000));
@@ -1365,7 +1385,28 @@ function init() {
   currentGoalIndex = 0;
   updateStartButton();
   updateView();
+  updateHitOptionButtons();
   renderMachineInfo(false);
+
+// ===== 達成率バー：表示された瞬間に「にょい」 =====
+const goalBar = $("goalBar");
+if (goalBar) {
+  const io = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+
+      if (goalBar.dataset.animated === "1") return;
+      goalBar.dataset.animated = "1";
+
+      const target = Number(goalBar.dataset.targetValue) || 0;
+      animateProgressBar(goalBar, target, 650);
+
+      io.disconnect(); // 1回だけなら監視解除（任意だけどおすすめ）
+    }
+  }, { threshold: 0 });
+
+  io.observe(goalBar);
+}
 
   saveSession();
 }
