@@ -673,20 +673,31 @@ function renderMachineInfo(animateBorder = false) {
   const borderText = `28交換ボーダー：${fmtBorder(borderVal)} 回/k`;
 
   if (borderEl) {
-    if (animateBorder) {
-      borderEl.classList.add("is-updating");
-      borderEl.innerText = "";
+  if (animateBorder) {
+    // まず消す
+    borderEl.classList.remove("is-revealing");
+    borderEl.classList.add("is-updating");
 
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          borderEl.innerText = borderText;
-          borderEl.classList.remove("is-updating");
-        });
-      });
-    } else {
-      borderEl.innerText = borderText;
-    }
+    // テキストはすぐ差し替える（消えてる間に更新）
+    borderEl.innerText = borderText;
+
+    // 少し待ってから、ゆっくり出す
+    setTimeout(() => {
+      borderEl.classList.remove("is-updating");
+      borderEl.classList.add("is-revealing");
+
+      // アニメ終了後にクラス掃除（連続切替でも安定）
+      const onEnd = () => {
+        borderEl.classList.remove("is-revealing");
+        borderEl.removeEventListener("animationend", onEnd);
+      };
+      borderEl.addEventListener("animationend", onEnd);
+    }, 180); // ← “変更した感”を出す間（お好みで 120〜220）
+  } else {
+    borderEl.classList.remove("is-updating", "is-revealing");
+    borderEl.innerText = borderText;
   }
+}
 
   jackpotEl && (jackpotEl.innerText = `図柄揃い確率：${m?.jackpot ?? "—"}`);
   rushEl && (rushEl.innerText = `ラッシュ突入率：${m?.rushEntry ?? "—"}`);
