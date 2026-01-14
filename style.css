@@ -9,7 +9,6 @@
    - iOS連打ズーム対策は投資ボタン領域のみ
    ========================= */
 
-
 /* ===== Theme Tokens ===== */
 :root{
   --blue-top: #8fd3f4;
@@ -268,9 +267,35 @@ progress::-webkit-progress-value{
   font-weight: 500;
   margin: 0; }
 
-/* ボーダーフェード更新 */
-.equivalent-border{ transition: opacity 0.15s ease; }
-.equivalent-border.is-updating{ opacity: 0; }
+/* ボーダー演出：フェードアウト→少し待って→フェードイン（ゆっくり） */
+.equivalent-border{
+  transition: opacity 0.25s ease; /* まず消える方は少し早め */
+}
+
+.equivalent-border.is-updating{
+  opacity: 0;
+}
+
+/* 追加：出現側をゆっくり（視認性UP） */
+.equivalent-border.is-revealing{
+  animation: borderReveal 0.55s ease-out forwards;
+}
+
+@keyframes borderReveal{
+  from{
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to{
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 動きを減らしたい設定の人向け */
+@media (prefers-reduced-motion: reduce){
+  .equivalent-border.is-revealing{ animation: none; }
+}
 
 /* ===== Invest buttons ===== */
 .invest-buttons{
@@ -507,6 +532,7 @@ progress.goal-rainbow::-moz-progress-bar{
   box-shadow: 0 4px 0 rgba(74, 54, 0, 0.35), 0 10px 24px rgba(0,0,0,0.18);
 }
 
+
 #finalCalcBtn{
   width: 100%;
   background: linear-gradient(180deg, #bbf7d0 0%, #22c55e 100%);
@@ -514,4 +540,3 @@ progress.goal-rainbow::-moz-progress-bar{
   border: 1px solid rgba(20, 83, 45, 0.3);
   box-shadow: 0 3px 0 rgba(20, 83, 45, 0.3), 0 8px 16px rgba(0,0,0,0.15);
 }
-
