@@ -65,6 +65,9 @@ let payoutConfirmIndex = -1; // 表記出玉待ち（RUSH/LT）のログ行 inde
 let endBallsYame = null;     // ヤメ確定の持ち玉（玉）
 let endBallsPending = false; // ヤメ時に入力待ちか
 let hasStarted = false;      // 開始済フラグ
+let investFromStop = false;  // 投資カードに来た理由
+let midCheckTempCounter = null; // 仮の現在回転数
+
 
 // ===== DOM helper =====
 function $(id) {
@@ -342,7 +345,10 @@ function addHitEvent() {
   setLogMode("afterHit");
   setCounterInputLocked(true);
   saveSession();
-  scrollToInvestCard(); // ★当たり押下後に投資カードへ
+  investFromStop = false;   // ← 当たり由来
+  scrollToInvestCard();
+
+  
 }
 
 // ===== 再開回転数（状態別）=====
@@ -475,7 +481,9 @@ function confirmEndBalls() {
   renderSpinLog();
   setCounterInputLocked(false);
   saveSession();
-  scrollToInvestCard(); // ★ヤメ確定後は投資額カードへ
+  investFromStop = true;    // ← ヤメ由来
+  scrollToInvestCard();
+
 }
 
 // ===== ひとつ戻す（安全版）=====
@@ -662,8 +670,9 @@ function fmtBorder(v) {
   return v.toFixed(1);
 }
 
-function renderMachineInfo(animateBorder = false) {
+function renderMachineInfo(animate = false) {
   const m = selectedMachine;
+
   const borderVal = m?.border?.[28];
 
   const borderEl = $("infoBorder");
@@ -671,36 +680,53 @@ function renderMachineInfo(animateBorder = false) {
   const rushEl = $("infoRush");
 
   const borderText = `28交換ボーダー：${fmtBorder(borderVal)} 回/k`;
+  const jackpotText = `図柄揃い確率：${m?.jackpot ?? "—"}`;
+  const rushText = `ラッシュ突入率：${m?.rushEntry ?? "—"}`;
 
-  if (borderEl) {
-  if (animateBorder) {
-    // まず消す
-    borderEl.classList.remove("is-revealing");
-    borderEl.classList.add("is-updating");
+  // 出す順番：ボーダー → 図柄揃い確率 → 突入率
+  const targets = [
+    { el: borderEl, text: borderText },
+    { el: jackpotEl, text: jackpotText },
+    { el: rushEl, text: rushText },
+  ].filter((x) => x.el);
 
-    // テキストはすぐ差し替える（消えてる間に更新）
-    borderEl.innerText = borderText;
+  // 演出なし（初期表示など）
+  if (!animate) {
+    for (const t of targets) {
+      t.el.classList.remove("is-updating", "is-revealing");
+      t.el.innerText = t.text;
+    }
+    return;
+  }
 
-    // 少し待ってから、ゆっくり出す
+  // ① まず消す
+  for (const t of targets) {
+    t.el.classList.remove("is-revealing");
+    t.el.classList.add("is-updating");
+  }
+
+  // ② 消えてる間に差し替え
+  for (const t of targets) {
+    t.el.innerText = t.text;
+  }
+
+  // ③ 順番に出す（ズラし演出）
+  const baseDelay = 180; // 全体の「間」
+  const stepDelay = 80;  // 0.08秒ずつ
+
+  targets.forEach((t, i) => {
     setTimeout(() => {
-      borderEl.classList.remove("is-updating");
-      borderEl.classList.add("is-revealing");
+      t.el.classList.remove("is-updating");
+      t.el.classList.add("is-revealing");
 
       // アニメ終了後にクラス掃除（連続切替でも安定）
       const onEnd = () => {
-        borderEl.classList.remove("is-revealing");
-        borderEl.removeEventListener("animationend", onEnd);
+        t.el.classList.remove("is-revealing");
+        t.el.removeEventListener("animationend", onEnd);
       };
-      borderEl.addEventListener("animationend", onEnd);
-    }, 180); // ← “変更した感”を出す間（お好みで 120〜220）
-  } else {
-    borderEl.classList.remove("is-updating", "is-revealing");
-    borderEl.innerText = borderText;
-  }
-}
-
-  jackpotEl && (jackpotEl.innerText = `図柄揃い確率：${m?.jackpot ?? "—"}`);
-  rushEl && (rushEl.innerText = `ラッシュ突入率：${m?.rushEntry ?? "—"}`);
+      t.el.addEventListener("animationend", onEnd);
+    }, baseDelay + i * stepDelay);
+  });
 }
 
 // ===== 機種セレクト =====
@@ -729,6 +755,8 @@ function initMachineSelect() {
     if (!m) return;
 
     selectedMachine = m;
+    updateHitButtonsForMachine();
+
     localStorage.setItem(LS_SELECTED_MACHINE, m.id);
 
     loadTotalsForSelectedMachine();
@@ -856,15 +884,30 @@ for (let i = spinLog.length - 1; i >= 0; i--) {
     break;
   }
 }
-
-
   setInvestYen(0); // 入力中をクリア（saveSessionも走る）
   renderConfirmedInvest();
   saveSession();
 
-  // ★回転ログカードへスライド（フォーカスはしない）
-  scrollToLogCard();
+  // スクロール先を分岐
+if (investFromStop) {
+  // ヤメ → 投資 → 次は計算
+  $("finalCalcCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+} else {
+  // 当たり → 投資 → 回転率チェック（ボタン位置）へ戻る
+  scrollToMidCheckButton();
 }
+
+// フラグは必ずリセット
+investFromStop = false;
+
+}
+
+function scrollToMidCheckButton() {
+  const btn = $("btnMidCheck");
+  if (!btn) return;
+  btn.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 
 // ===== 期待値計算（裏）=====
 function calcExpectationBalls(rotationRate, spinCount) {
@@ -960,13 +1003,17 @@ function updateView() {
 // ★目標値を保存（アニメ用）
 goalBar.dataset.targetValue = String(progressInStep);
 
-// ★まだアニメしてないなら 0 で待機（表示された瞬間に伸ばす）
-if (goalBar.dataset.animated !== "1") {
-  goalBar.value = 0;
-} else {
-  // 既に一度表示済みなら通常更新（にょいは初回のみ）
-  goalBar.value = progressInStep;
+// まず target を保存
+goalBar.dataset.targetValue = String(progressInStep);
+
+// max が変わるので、value は現在値を max 範囲に収めるだけ（0固定しない）
+goalBar.value = Math.min(Number(goalBar.value) || 0, span);
+
+// もしバーが画面内なら、今回の target までアニメする
+if (goalBar.dataset.inView === "1") {
+  animateProgressBar(goalBar, progressInStep, 650);
 }
+
 
 
     goalBar.classList.remove(
@@ -1338,11 +1385,219 @@ function updateHitOptionButtons() {
   }
 }
 
+function updateHitButtonsForMachine() {
+  const hitTypes = selectedMachine.hitTypes || [];
+
+  document.querySelectorAll("[data-hit]").forEach((btn) => {
+    const type = btn.dataset.hit;
+    btn.classList.toggle("is-hidden", !hitTypes.includes(type));
+  });
+}
+
+function skipInvest() {
+  // 入力中の投資はゼロ扱い
+  setInvestYen(0);
+
+  // スクロール先を分岐
+  if (investFromStop) {
+    // ヤメ経由 → 期待値計算へ
+    $("finalCalcCard")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  } else {
+    // 当たり経由 → 回転ログへ
+    scrollToLogCard();
+  }
+
+  // フラグは必ずリセット
+  investFromStop = false;
+}
+
+// 途中回転率の計算関数
+function calcMidRotationRate() {
+  const spinCount = getTotalSpinsFromLog();
+  if (spinCount <= 0) return null;
+
+  const investBalls = (confirmedInvestYen / 1000) * 250;
+  const payout = getTotalPayoutFromLog();
+
+  const consumedBalls = investBalls + payout;
+  if (consumedBalls <= 0) return null;
+
+  return {
+    spinCount,
+    rotationRate: (spinCount / consumedBalls) * 250,
+  };
+}
+
+// 途中結果の表示処理
+function showMidCheck() {
+  if (!(confirmedInvestYen > 0)) {
+    alert("投資額を追加して下さい");
+    scrollToInvestCard();
+    return;
+  }
+  const result = calcMidRotationRateB();
+  // ★キャンセル時（何もしない）
+if (result === undefined) {
+  return;
+}
+// ★本当に計算できないケース
+if (result === null) {
+  alert("途中経過を計算できません");
+  return;
+}
+
+  const { spinCount, rotationRate } = result;
+  const border = selectedMachine?.border?.[28];
+  updateMidRateMeter(rotationRate, border);
+
+  const diff =
+    Number.isFinite(border) ? rotationRate - border : null;
+
+  const text =
+  `<span class="mid-sub">回転数：${fmtInt(spinCount)} 回</span>\n` +
+  `<span class="mid-sub">現在の回転率：${fmtRate1(rotationRate)} 回/k</span>\n` +
+  `<span class="mid-sub">28交換ボーダー：${fmtRate1(border)}</span>\n` +
+  (diff !== null
+    ? `差：${diff >= 0 ? "+" : ""}${fmtRate1(diff)}`
+    : "");
+
+
+  const card = $("midCheckCard");
+  const pre = $("midCheckResult");
+
+  pre.innerHTML = text;
+  card.classList.remove("is-hidden");
+
+  setResultTierClass(getRateTierClass(rotationRate, border));
+}
+
+// 途中結果を閉じる
+function closeMidCheck() {
+  $("midCheckCard")?.classList.add("is-hidden");
+  setResultTierClass("");
+}
+
+function getMidCheckCurrentCounter() {
+  const input = $("counterNow");
+  const raw = input?.value?.trim();
+
+  // ① 先に入力されている場合
+  if (raw !== "") {
+    const v = Number(raw);
+    if (Number.isFinite(v) && v >= nextStartCounter) {
+      return Math.floor(v);
+    }
+  }
+
+  // ② 入力されていない場合 → 後で聞く
+  return null;
+}
+
+function promptMidCheckCounter() {
+  const v = prompt(
+    `現在のデータカウンター回転数を入力してください\n（開始: ${nextStartCounter} 以上）`
+  );
+
+  if (v === null) return null;
+
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < nextStartCounter) {
+    alert("回転数が不正です");
+    return null;
+  }
+
+  return Math.floor(n);
+}
+
+function getMidCheckSpinCount(tempCounter) {
+  const confirmedSpins = getTotalSpinsFromLog();
+
+  if (spinLog.length === 0) return confirmedSpins;
+
+  const last = spinLog[spinLog.length - 1];
+
+  // 最後が「開始」なら、そこから仮回転数までを足す
+  if (last.label === "開始") {
+    const add = tempCounter - last.from;
+    return confirmedSpins + Math.max(0, add);
+  }
+
+  return confirmedSpins;
+}
+
+function calcMidRotationRateB() {
+  let counter = getMidCheckCurrentCounter();
+
+  // 後出し入力ルート
+  if (counter === null) {
+    counter = promptMidCheckCounter();
+    if (counter === null) return undefined;
+  }
+
+  const spinCount = getMidCheckSpinCount(counter);
+  if (spinCount <= 0) return null;
+
+  const investBalls = (confirmedInvestYen / 1000) * 250;
+  const payout = getTotalPayoutFromLog();
+
+  const consumedBalls = investBalls + payout;
+  if (consumedBalls <= 0) return null;
+
+  return {
+    spinCount,
+    rotationRate: (spinCount / consumedBalls) * 250,
+  };
+}
+
+function updateMidRateMeter(rotationRate, border) {
+  const meter = document.getElementById("midRateMeter");
+  const needle = document.getElementById("midMeterNeedle");
+  const minEl = document.getElementById("midMeterMin");
+  const maxEl = document.getElementById("midMeterMax");
+
+  if (!meter || !needle) return;
+
+  if (!Number.isFinite(rotationRate) || !Number.isFinite(border)) {
+    meter.classList.add("is-hidden");
+    return;
+  }
+
+  meter.classList.remove("is-hidden");
+
+  // 表示レンジ：ボーダー±5回/k（好みで調整OK）
+  const range = 5;
+  const min = border - range;
+  const max = border + range;
+
+  // 目盛り表示
+  if (minEl) minEl.textContent = `${(Math.floor(min * 10) / 10).toFixed(1)}`;
+  if (maxEl) maxEl.textContent = `${(Math.floor(max * 10) / 10).toFixed(1)}`;
+
+  // 位置（0〜100%に正規化して針を動かす）
+  let pct = ((rotationRate - min) / (max - min)) * 100;
+  pct = Math.max(0, Math.min(100, pct));
+
+  needle.style.left = `${pct}%`;
+}
+
+// 閉じる時に針を戻す
+function closeMidCheck() {
+  $("midCheckCard")?.classList.add("is-hidden");
+
+  const needle = $("midMeterNeedle");
+  if (needle) needle.style.left = "50%";
+}
+
+
 
 // ===== 初期化 =====
 function init() {
   initMachineSelect();
   renderMachineInfo(false);
+  updateHitButtonsForMachine();
 
   $("btnStart")?.addEventListener("click", addStartEvent);
   $("btnHit")?.addEventListener("click", addHitEvent);
@@ -1356,13 +1611,17 @@ function init() {
   $("btnPayoutConfirm")?.addEventListener("click", confirmPayout);
   $("resetLogBtn")?.addEventListener("click", resetTodayLog);
   $("btnCharge")?.addEventListener("click", () => confirmHitOutcome("charge"));
-
-
+  
   $("add500")?.addEventListener("click", () => addInvest(500));
   $("add1000")?.addEventListener("click", () => addInvest(1000));
   $("add5000")?.addEventListener("click", () => addInvest(5000));
   $("sub500")?.addEventListener("click", () => subInvest(500));
+  $("skipInvest")?.addEventListener("click", skipInvest);
   $("clearInvest")?.addEventListener("click", () => setInvestYen(0));
+
+  $("btnMidCheck")?.addEventListener("click", showMidCheck);
+  $("midCheckClose")?.addEventListener("click", closeMidCheck);
+
 
   // ★投資額の追加
   $("calcBtn")?.addEventListener("click", confirmInvest);
@@ -1403,20 +1662,20 @@ function init() {
 const goalBar = $("goalBar");
 if (goalBar) {
   const io = new IntersectionObserver((entries) => {
-    for (const entry of entries) {
-      if (!entry.isIntersecting) continue;
+  for (const entry of entries) {
+    if (entry.isIntersecting) {
+      goalBar.dataset.inView = "1";
 
-      if (goalBar.dataset.animated === "1") return;
-      goalBar.dataset.animated = "1";
-
+      // 表示された瞬間もアニメ（初回＆スクロール再表示でもOK）
       const target = Number(goalBar.dataset.targetValue) || 0;
       animateProgressBar(goalBar, target, 650);
-
-      io.disconnect(); // 1回だけなら監視解除（任意だけどおすすめ）
+    } else {
+      goalBar.dataset.inView = "0";
     }
-  }, { threshold: 0 });
+  }
+   }, { threshold: 0.25 });
 
-  io.observe(goalBar);
+   io.observe(goalBar);
 }
 
   saveSession();
