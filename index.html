@@ -31,7 +31,7 @@
       loading="eager"
     />
   </h1>
-  <p class="app-version">Version 4.0</p>
+  <p class="app-version">Version5.0</p>
 
   <main class="container">
 
@@ -43,15 +43,20 @@
           <select id="machineSelect"></select>
         </label>
 
-        <p id="infoBorder" class="equivalent-border">ボーダー：— 回/k</p>
+        <p id="infoBorder" class="equivalent-border machine-fade">ボーダー：— 回/k</p>
 
         <!-- ボーダーの下に横並び -->
         <div class="rate-row">
-          <p id="infoJackpot">図柄揃い確率：—</p>
-          <p id="infoRush">ラッシュ突入率：—</p>
+         <p id="infoJackpot" class="machine-fade">図柄揃い確率：—</p>
+         <p id="infoRush" class="machine-fade">ラッシュ突入率：—</p>
         </div>
       </div>
     </section>
+
+    <button id="btnMidCheck" class="chip chip-mid-check chip-wide-thin">
+    回転率チェック
+    </button>
+
 
     <!-- 回転ログ -->
     <section class="card" id="logCard">
@@ -131,6 +136,7 @@
 
         <div class="invest-row">
           <button type="button" class="chip sub" id="sub500">−500円</button>
+          <button type="button" class="chip neutral" id="skipInvest">追加無し</button>
           <button type="button" class="chip clear" id="clearInvest">クリア</button>
         </div>
       </div>
@@ -168,8 +174,35 @@
   <script src="./machines.js"></script>
   <script src="./app.js"></script>
 
+<!-- ミニ結果カード --> 
+<div id="midCheckCard" class="card is-hidden">
+ 
+  <h3 class="section-title">途中経過</h3>
+  <div class="rate-meter" id="midRateMeter" aria-label="回転率メーター">
+  <div class="rate-meter__scale">
+    <span id="midMeterMin" class="rate-meter__tick">—</span>
+    <span id="midMeterCenter" class="rate-meter__tick">ボーダー</span>
+    <span id="midMeterMax" class="rate-meter__tick">—</span>
+  </div>
+
+  <div class="rate-meter__bar">
+    <!-- ボーダー位置（常に中央） -->
+    <div class="rate-meter__border"></div>
+
+    <!-- 現在位置（動く） -->
+    <div class="rate-meter__needle" id="midMeterNeedle" style="left:50%"></div>
+  </div>
+
+  <div class="rate-meter__labels">
+    <span>低い</span>
+    <span>高い</span>
+  </div>
+</div>
+
+  <pre id="midCheckResult"></pre>
+  <button id="midCheckClose" class="chip clear">閉じる</button>
+</div>
+
 
 </body>
 </html>
-
-
