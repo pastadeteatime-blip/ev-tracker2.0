@@ -1177,15 +1177,17 @@ function calc() {
 
   saveTotalsForSelectedMachine();
 
-  const resultEl = $("result");
-  if (resultEl) {
-    resultEl.innerText =
-      `回した回転数：${fmtInt(spinCount)} 回\n` +
-      `今回の回転率：${fmtRate1(rotationRate)} 回/k`;
+  const finalEl = $("finalResult");
+if (finalEl) {
+  const investK = confirmedInvestYen / 1000;
 
-    const borderVal = selectedMachine?.border?.[28];
-    setResultTierClass(getRateTierClass(rotationRate, borderVal));
-  }
+  finalEl.innerText =
+    `${fmtInt(spinCount)}/${fmtRate1(investK)}k\n` +
+    `今回の回転率：${fmtRate1(rotationRate)} 回/k`;
+}
+
+  const borderVal = selectedMachine?.border?.[28];
+  updateFinalRateMeter(rotationRate, borderVal);
 
   hasStarted = false;
   updateStartButton();
@@ -1456,28 +1458,22 @@ if (result === null) {
   const diff =
     Number.isFinite(border) ? rotationRate - border : null;
 
-  const text =
-  `<span class="mid-sub">回転数：${fmtInt(spinCount)} 回</span>\n` +
-  `<span class="mid-sub">現在の回転率：${fmtRate1(rotationRate)} 回/k</span>\n` +
-  `<span class="mid-sub">28交換ボーダー：${fmtRate1(border)}</span>\n` +
-  (diff !== null
-    ? `差：${diff >= 0 ? "+" : ""}${fmtRate1(diff)}`
-    : "");
+   $("midSpinVal").textContent   = `${fmtInt(spinCount)} 回`;
+   $("midRateVal").textContent   = `${fmtRate1(rotationRate)} 回/k`;
+   $("midBorderVal").textContent = `${fmtRate1(border)}`;
+   $("midDiffVal").textContent   =
+  diff !== null ? `${diff >= 0 ? "+" : ""}${fmtRate1(diff)}` : "—";
 
+    const card = $("midCheckCard");
+  if (!card) return;
 
-  const card = $("midCheckCard");
-  const pre = $("midCheckResult");
-
-  pre.innerHTML = text;
+  // もう text も pre.innerHTML も使わない
   card.classList.remove("is-hidden");
+$("midOverlay")?.classList.remove("is-hidden");
 
+  // resultの色を使うなら残してOK（不要なら消してOK）
   setResultTierClass(getRateTierClass(rotationRate, border));
-}
 
-// 途中結果を閉じる
-function closeMidCheck() {
-  $("midCheckCard")?.classList.add("is-hidden");
-  setResultTierClass("");
 }
 
 function getMidCheckCurrentCounter() {
@@ -1583,9 +1579,37 @@ function updateMidRateMeter(rotationRate, border) {
   needle.style.left = `${pct}%`;
 }
 
+function updateFinalRateMeter(rotationRate, border) {
+  const meter = $("finalRateMeter");
+  const needle = $("finalMeterNeedle");
+  const minEl = $("finalMeterMin");
+  const maxEl = $("finalMeterMax");
+  if (!meter || !needle || !minEl || !maxEl) return;
+
+  if (!Number.isFinite(rotationRate) || !Number.isFinite(border)) {
+    meter.classList.add("is-hidden");
+    return;
+  }
+
+  const range = 5;
+  const min = border - range;
+  const max = border + range;
+
+  minEl.textContent = fmtRate1(min);
+  maxEl.textContent = fmtRate1(max);
+
+  let pct = ((rotationRate - min) / (max - min)) * 100;
+  pct = Math.max(0, Math.min(100, pct));
+
+  needle.style.left = `${pct}%`;
+}
+
+
 // 閉じる時に針を戻す
 function closeMidCheck() {
   $("midCheckCard")?.classList.add("is-hidden");
+  $("midOverlay")?.classList.add("is-hidden");
+
 
   const needle = $("midMeterNeedle");
   if (needle) needle.style.left = "50%";
@@ -1621,7 +1645,7 @@ function init() {
 
   $("btnMidCheck")?.addEventListener("click", showMidCheck);
   $("midCheckClose")?.addEventListener("click", closeMidCheck);
-
+  $("midOverlay")?.addEventListener("click", closeMidCheck);
 
   // ★投資額の追加
   $("calcBtn")?.addEventListener("click", confirmInvest);
