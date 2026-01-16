@@ -2,10 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
-  >
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>期待値トラッカー</title>
 
   <link rel="stylesheet" href="style.css" />
@@ -45,22 +42,23 @@
 
         <p id="infoBorder" class="equivalent-border machine-fade">ボーダー：— 回/k</p>
 
-        <!-- ボーダーの下に横並び -->
         <div class="rate-row">
-         <p id="infoJackpot" class="machine-fade">図柄揃い確率：—</p>
-         <p id="infoRush" class="machine-fade">ラッシュ突入率：—</p>
+          <p id="infoJackpot" class="machine-fade">図柄揃い確率：—</p>
+          <p id="infoRush" class="machine-fade">ラッシュ突入率：—</p>
         </div>
       </div>
     </section>
 
-    <button id="btnMidCheck" class="chip chip-mid-check chip-wide-thin">
-    回転率チェック
-    </button>
-
-
     <!-- 回転ログ -->
     <section class="card" id="logCard">
-      <h2 class="section-title">回転ログ</h2>
+
+      <!-- 右上ボタンのためのヘッダー -->
+      <div class="card-header">
+        <h2 class="section-title">回転ログ</h2>
+        <button id="btnMidCheck" type="button" class="chip chip-mid-check chip-midcheck-mini">
+          回転率チェック
+        </button>
+      </div>
 
       <div class="log-input">
         <label>
@@ -124,7 +122,6 @@
         <input type="number" id="investYen" inputmode="numeric" min="0" step="500"/>
       </label>
 
-      <!-- 仮確定投資 表示 -->
       <p id="investConfirmed" class="invest-confirmed">仮確定投資：0 円</p>
 
       <div class="invest-buttons" role="group" aria-label="投資額の操作">
@@ -141,7 +138,6 @@
         </div>
       </div>
 
-      <!-- 期待値計算はしない：投資額だけ仮確定 -->
       <button type="button" id="calcBtn">投資額の追加</button>
 
       <p id="result" aria-live="polite"></p>
@@ -150,10 +146,30 @@
     <!-- 期待値計算（別カード） -->
     <section class="card" id="finalCalcCard">
       <button type="button" id="finalCalcBtn">期待値計算</button>
+
+      <p id="finalResult" class="final-result" aria-live="polite"></p>
+
+      <div class="rate-meter rate-meter--compact is-hidden" id="finalRateMeter" aria-label="今回の回転率メーター">
+        <div class="rate-meter__scale">
+          <span id="finalMeterMin" class="rate-meter__tick">—</span>
+          <span class="rate-meter__tick">ボーダー</span>
+          <span id="finalMeterMax" class="rate-meter__tick">—</span>
+        </div>
+
+        <div class="rate-meter__bar">
+          <div class="rate-meter__border"></div>
+          <div class="rate-meter__needle" id="finalMeterNeedle" style="left:50%"></div>
+        </div>
+
+        <div class="rate-meter__labels">
+          <span>低い</span>
+          <span>高い</span>
+        </div>
+      </div>
     </section>
 
     <!-- 累計 -->
-    <section class="card">
+    <section class="card" id="totalCard">
       <p id="totalSpin">累計確率：0</p>
       <p id="totalInvest">累計投資：0 円</p>
       <p id="avgRate">累計回転率：0 回/k</p>
@@ -171,38 +187,60 @@
 
   </main>
 
+  <!-- scripts（先に machines → app の順） -->
   <script src="./machines.js"></script>
   <script src="./app.js"></script>
 
-<!-- ミニ結果カード --> 
-<div id="midCheckCard" class="card is-hidden">
- 
-  <h3 class="section-title">途中経過</h3>
-  <div class="rate-meter" id="midRateMeter" aria-label="回転率メーター">
-  <div class="rate-meter__scale">
-    <span id="midMeterMin" class="rate-meter__tick">—</span>
-    <span id="midMeterCenter" class="rate-meter__tick">ボーダー</span>
-    <span id="midMeterMax" class="rate-meter__tick">—</span>
+  <!-- 途中経過：背景オーバーレイ（外タップで閉じる） -->
+  <div id="midOverlay" class="mid-overlay is-hidden" aria-hidden="true"></div>
+
+  <!-- 途中経過：モーダル -->
+  <div id="midCheckCard" class="card mid-modal is-hidden" aria-label="途中経過">
+    <h3 class="section-title">途中経過</h3>
+
+    <div class="rate-meter" id="midRateMeter" aria-label="回転率メーター">
+      <div class="rate-meter__scale">
+        <span id="midMeterMin" class="rate-meter__tick">—</span>
+        <span id="midMeterCenter" class="rate-meter__tick">ボーダー</span>
+        <span id="midMeterMax" class="rate-meter__tick">—</span>
+      </div>
+
+      <div class="rate-meter__bar">
+        <div class="rate-meter__border"></div>
+        <div class="rate-meter__needle" id="midMeterNeedle" style="left:50%"></div>
+      </div>
+
+      <div class="rate-meter__labels">
+        <span>低い</span>
+        <span>高い</span>
+      </div>
+    </div>
+
+    <div class="kv-list">
+      <div class="kv-row">
+        <span class="kv-key">回転数</span>
+        <span class="kv-val" id="midSpinVal">—</span>
+      </div>
+
+      <div class="kv-row">
+        <span class="kv-key">現在の回転率</span>
+        <span class="kv-val" id="midRateVal">—</span>
+      </div>
+
+      <div class="kv-row">
+        <span class="kv-key">28交換ボーダー</span>
+        <span class="kv-val" id="midBorderVal">—</span>
+      </div>
+
+      <div class="kv-row">
+        <span class="kv-key">差</span>
+        <span class="kv-val" id="midDiffVal">—</span>
+      </div>
+    </div>
+
+    <!-- ✅閉じるボタン復活 -->
+    <button id="midCheckClose" type="button" class="chip clear">閉じる</button>
   </div>
-
-  <div class="rate-meter__bar">
-    <!-- ボーダー位置（常に中央） -->
-    <div class="rate-meter__border"></div>
-
-    <!-- 現在位置（動く） -->
-    <div class="rate-meter__needle" id="midMeterNeedle" style="left:50%"></div>
-  </div>
-
-  <div class="rate-meter__labels">
-    <span>低い</span>
-    <span>高い</span>
-  </div>
-</div>
-
-  <pre id="midCheckResult"></pre>
-  <button id="midCheckClose" class="chip clear">閉じる</button>
-</div>
-
 
 </body>
 </html>
