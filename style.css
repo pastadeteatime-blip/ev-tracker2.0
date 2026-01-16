@@ -576,8 +576,13 @@ progress.goal-rainbow::-moz-progress-bar{
   left: 50%;
   bottom: 20px;
   transform: translateX(-50%);
-  width: min(92vw, 420px);
+  width: min(88vw, 420px); /* ← 92 → 88 */
   z-index: 50;
+  text-align: center;
+}
+
+#midCheckCard .section-title {
+  text-align: center;
 }
 
 #midCheckResult{
@@ -588,6 +593,7 @@ progress.goal-rainbow::-moz-progress-bar{
   font-family: inherit;                 /* ← 等幅をやめる */
   font-size: 0.95rem;
   color: var(--text);
+  text-align: center;
   background: transparent;
   margin: 0;
   padding: 0;
@@ -637,15 +643,18 @@ progress.goal-rainbow::-moz-progress-bar{
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.12);
   overflow: hidden;
+  position: relative;
 }
 
 /* ボーダー（中央） */
 .rate-meter__border{
   position:absolute;
   left: 50%;
-  top: -6px;
+  top: -3px;
   transform: translateX(-50%);
   width: 2px;
+  height: calc(100% + 6px);
+  opacity: 0.7;
   height: 26px;
   background: rgba(15,23,42,0.55);
   border-radius: 999px;
@@ -681,9 +690,184 @@ progress.goal-rainbow::-moz-progress-bar{
   padding: 6px 32px;
   font-size: 0.8rem;   /* 文字を小さく */
   font-weight: 400;    /* 太字を解除 */
+  display: block;
+  margin: 10px auto 0;
+  width: 60%;
 }
 
 #midCheckResult .mid-sub{
   font-size: 0.8rem;                 /* 小さく */
   color: rgba(15,23,42,0.6);         /* 薄く */
+}
+
+/* 「ラベル：値」を縦に揃える（途中チェック） */
+.kv-list{
+  display: grid;
+  row-gap: 6px;
+  margin-top: 10px;
+  justify-content: center;
+}
+
+.kv-row{
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
+  align-items: baseline;
+}
+
+.kv-key{
+  text-align: right;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+.kv-key::after{
+  content: "：";
+}
+
+.kv-val{
+  text-align: left;
+  font-weight: 600;
+}
+
+/* ===== 途中経過（KV表示） ===== */
+.kv-list {
+  margin-top: 12px;
+}
+
+.kv-row {
+  display: grid;
+  grid-template-columns: 8em auto; /* 「：」の縦ラインも揃う */
+  align-items: center;
+  gap: 4px;
+}
+
+.kv-key {
+  font-size: 0.9rem;
+  color: rgba(15, 23, 42, 0.7);
+  font-weight: 400; /* ← 細め */
+  text-align: right;
+}
+
+.kv-val {
+  font-size: 1rem;
+  font-weight: 400; /* ← 通常は太くしない */
+  color: #0f172a;
+}
+
+/* ★ 差だけ強調 */
+#midDiffVal {
+  font-weight: 700;
+}
+
+#midDiffVal.is-plus {
+  color: #2563eb; /* 青 */
+}
+
+#midDiffVal.is-minus {
+  color: #dc2626; /* 赤 */
+}
+
+.final-result{
+  margin-top: 12px;
+  white-space: pre-line;
+  line-height: 1.5;
+  color: rgba(15, 23, 42, 0.85);
+  font-size: 0.95rem;
+}
+
+/* 期待値計算カード用：少しコンパクトに */
+.rate-meter--compact{
+  margin-top: 10px;
+}
+
+.rate-meter--compact .rate-meter__bar{
+  height: 12px;          /* 好みで調整OK */
+}
+
+.rate-meter--compact .rate-meter__scale{
+  margin-bottom: 6px;
+}
+
+.rate-meter--compact .rate-meter__labels{
+  margin-top: 6px;
+  opacity: 0.8;
+  font-size: 0.85rem;
+}
+
+.card-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* タイトルは通常位置 */
+.card-header .section-title {
+  margin: 0;
+}
+
+/* 回転率チェックを「右上にちょこん」 */
+.chip-icon {
+  margin-left: auto;
+  padding: 4px 8px;      /* 横幅を最小限に */
+  font-size: 11px;
+  height: 26px;
+  line-height: 1;
+  border-radius: 999px; /* ピル型で軽く */
+  white-space: nowrap;  /* 改行させない */
+}
+
+/* 回転ログ右上の「小さな補助ボタン」 */
+.chip-midcheck-mini {
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  height: 26px !important;
+  min-width: auto !important;
+
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+/* card-header 内で右上に寄せる */
+.card-header {
+  display: flex;
+  align-items: center;
+}
+
+.card-header #btnMidCheck {
+  margin-left: auto;
+}
+
+/* 回転ログ右上・小ボタン確定版 */
+#btnMidCheck {
+  width: auto !important;
+  min-width: unset !important;
+  max-width: max-content;
+
+  padding: 4px 10px;
+  font-size: 11px;
+  height: 26px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+#midCheckClose{
+  flex: none;          /* 伸びない */
+  width: auto;         /* 内容幅 */
+  min-width: 88px;     /* 指で押しやすい最小幅 */
+  padding: 10px 16px;  /* 縦を少し薄く */
+  align-self: center;  /* 中央寄せ */
+}
+
+.mid-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35); /* 薄暗さ */
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 40; /* midCheckCard(50)より下 */
 }
