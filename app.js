@@ -936,7 +936,7 @@ function promptMidCheckBalls() {
 function scrollToMidCheckButton() {
   const btn = $("btnMidCheck");
   if (!btn) return;
-  btn.scrollIntoView({ behavior: "smooth", block: "center" });
+  btn.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 
