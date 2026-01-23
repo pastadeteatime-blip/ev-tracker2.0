@@ -920,6 +920,19 @@ investFromStop = false;
 
 }
 
+function promptMidCheckBalls() {
+  const v = prompt("現在の持ち玉を入力してください");
+  if (v === null) return null;
+
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < 0) {
+    alert("持ち玉が不正です");
+    return null;
+  }
+  return Math.floor(n);
+}
+
+
 function scrollToMidCheckButton() {
   const btn = $("btnMidCheck");
   if (!btn) return;
@@ -1054,7 +1067,8 @@ if (goalBar.dataset.inView === "1") {
   const percentEl = $("percent");
   if (percentEl) {
     const pct = (progressInStep / span) * 100;
-    percentEl.innerText = `達成率：${fmtRate2(Math.min(100, pct))} %`;
+    percentEl.innerText = `達成率：${(Math.floor(Math.min(100, pct) * 10) / 10).toFixed(1)} %`;
+    
   }
 
   const goalTitle = document.querySelector(".goal-title");
@@ -1460,8 +1474,15 @@ function showMidCheck() {
     scrollToInvestCard();
     return;
   }
-  const result = calcMidRotationRateB();
-  // ★キャンセル時（何もしない）
+
+// ★途中チェック用：現在の持ち玉（一時入力・記録しない）
+const tempEndBalls = promptMidCheckBalls();
+if (tempEndBalls === null) {
+  return; // キャンセル
+}
+
+const result = calcMidRotationRateB(tempEndBalls);
+// ★キャンセル時（何もしない）
 if (result === undefined) {
   return;
 }
@@ -1556,13 +1577,12 @@ function getMidCheckSpinCount(tempCounter) {
   return confirmedSpins;
 }
 
-function calcMidRotationRateB() {
+function calcMidRotationRateB(tempEndBalls) {
   let counter = getMidCheckCurrentCounter();
 
-  // 後出し入力ルート
   if (counter === null) {
     counter = promptMidCheckCounter();
-    if (counter === null) return undefined;
+    if (counter === null) return undefined; // キャンセル扱い
   }
 
   const spinCount = getMidCheckSpinCount(counter);
@@ -1571,7 +1591,7 @@ function calcMidRotationRateB() {
   const investBalls = (confirmedInvestYen / 1000) * 250;
   const payout = getTotalPayoutFromLog();
 
-  const consumedBalls = investBalls + payout;
+  const consumedBalls = investBalls + payout - tempEndBalls; // ★持ち玉を引く
   if (consumedBalls <= 0) return null;
 
   return {
@@ -1579,6 +1599,7 @@ function calcMidRotationRateB() {
     rotationRate: (spinCount / consumedBalls) * 250,
   };
 }
+
 
 function updateMidRateMeter(rotationRate, border) {
   const meter = document.getElementById("midRateMeter");
