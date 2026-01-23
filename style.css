@@ -871,3 +871,11 @@ progress.goal-rainbow::-moz-progress-bar{
   -webkit-backdrop-filter: blur(2px);
   z-index: 40; /* midCheckCard(50)より下 */
 }
+
+.mid-balls-input{
+  margin: 10px 0 8px;
+}
+#midBallsConfirm{
+  width: 100%;
+  margin-bottom: 6px;
+}
