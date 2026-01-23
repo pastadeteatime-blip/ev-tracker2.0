@@ -843,15 +843,15 @@ progress.goal-rainbow::-moz-progress-bar{
   min-width: unset !important;
   max-width: max-content;
 
-  padding: 4px 10px;
-  font-size: 11px;
-  height: 26px;
+  padding: 6px 14px;
+  font-size: 14px;
+  height: 30px;
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
 
-  border-radius: 8px;
+  border-radius: 10px;
   box-shadow: none;
 }
 
