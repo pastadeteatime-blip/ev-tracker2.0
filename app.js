@@ -973,12 +973,17 @@ function animateProgressBar(barEl, toValue, duration = 650) {
 function updateView() {
   // ===== 累積期待値 =====
   const totalEl = $("total");
-  if (totalEl) {
-    const b = totals.totalExpectBalls;
-    const signText = b > 0 ? `+${fmtInt(b)}` : `${fmtInt(b)}`;
-    totalEl.innerText = `累積期待値：${signText} 玉`;
-    setSignedColor(totalEl, b);
-  }
+if (totalEl) {
+  const b = totals.totalExpectBalls;
+
+  const yen = b * YEN_PER_BALL; // 等価：1玉=4円
+  const ballText = b > 0 ? `+${fmtInt(b)}` : `${fmtInt(b)}`;
+  const yenText  = yen > 0 ? `+${fmtInt(yen)}` : `${fmtInt(yen)}`;
+
+  totalEl.innerText = `累積期待値：${ballText} 玉（${yenText} 円）`;
+  setSignedColor(totalEl, b);
+}
+
 
   // ===== 累計確率（初当たり） =====
   const spinEl = $("totalSpin");
@@ -1068,7 +1073,7 @@ if (goalBar.dataset.inView === "1") {
   if (percentEl) {
     const pct = (progressInStep / span) * 100;
     percentEl.innerText = `達成率：${(Math.floor(Math.min(100, pct) * 10) / 10).toFixed(1)} %`;
-    
+
   }
 
   const goalTitle = document.querySelector(".goal-title");
@@ -1475,59 +1480,58 @@ function showMidCheck() {
     return;
   }
 
-// ★途中チェック用：現在の持ち玉（一時入力・記録しない）
-const tempEndBalls = promptMidCheckBalls();
-if (tempEndBalls === null) {
-  return; // キャンセル
+  $("midCheckCard")?.classList.remove("is-hidden");
+  $("midOverlay")?.classList.remove("is-hidden");
+
+  const input = $("midBallsNow");
+  if (input) {
+    input.value = "";
+    input.focus(); // ★最初から数字入力
+  }
 }
 
-const result = calcMidRotationRateB(tempEndBalls);
-// ★キャンセル時（何もしない）
-if (result === undefined) {
-  return;
-}
-// ★本当に計算できないケース
-if (result === null) {
-  alert("途中経過を計算できません");
-  return;
-}
+function confirmMidCheck() {
+  const v = Number($("midBallsNow")?.value);
+  if (!Number.isFinite(v) || v < 0) {
+    alert("現在の持ち玉（玉）を入力してください");
+    return;
+  }
+
+  const tempEndBalls = Math.floor(v);
+
+  const result = calcMidRotationRateB(tempEndBalls);
+  if (result === undefined) return;
+  if (result === null) {
+    alert("途中経過を計算できません");
+    return;
+  }
 
   const { spinCount, rotationRate } = result;
   const border = selectedMachine?.border?.[28];
   updateMidRateMeter(rotationRate, border);
 
-  const diff =
-    Number.isFinite(border) ? rotationRate - border : null;
+  const diff = Number.isFinite(border) ? rotationRate - border : null;
 
-   $("midSpinVal").textContent   = `${fmtInt(spinCount)} 回`;
-   $("midRateVal").textContent   = `${fmtRate1(rotationRate)} 回/k`;
-   $("midBorderVal").textContent = `${fmtRate1(border)}`;
+  $("midSpinVal").textContent   = `${fmtInt(spinCount)} 回`;
+  $("midRateVal").textContent   = `${fmtRate1(rotationRate)} 回/k`;
+  $("midBorderVal").textContent = `${fmtRate1(border)}`;
 
-   const diffEl = $("midDiffVal");
+  const diffEl = $("midDiffVal");
+  if (diffEl) {
+    if (diff !== null && Number.isFinite(diff)) {
+      diffEl.textContent = `${diff >= 0 ? "+" : ""}${fmtRate1(diff)}`;
+      diffEl.classList.remove("is-plus", "is-minus");
+      if (diff > 0) diffEl.classList.add("is-plus");
+      else if (diff < 0) diffEl.classList.add("is-minus");
+    } else {
+      diffEl.textContent = "—";
+      diffEl.classList.remove("is-plus", "is-minus");
+    }
+  }
 
-if (diff !== null && Number.isFinite(diff)) {
-  diffEl.textContent = `${diff >= 0 ? "+" : ""}${fmtRate1(diff)}`;
-
-  diffEl.classList.remove("is-plus", "is-minus");
-  if (diff > 0) diffEl.classList.add("is-plus");
-  else if (diff < 0) diffEl.classList.add("is-minus");
-} else {
-  diffEl.textContent = "—";
-  diffEl.classList.remove("is-plus", "is-minus");
-}
-
-
-    const card = $("midCheckCard");
-  if (!card) return;
-
-  // もう text も pre.innerHTML も使わない
-  card.classList.remove("is-hidden");
-$("midOverlay")?.classList.remove("is-hidden");
-
-  // resultの色を使うなら残してOK（不要なら消してOK）
   setResultTierClass(getRateTierClass(rotationRate, border));
-
 }
+
 
 function getMidCheckCurrentCounter() {
   const input = $("counterNow");
@@ -1699,6 +1703,8 @@ function init() {
   $("btnMidCheck")?.addEventListener("click", showMidCheck);
   $("midCheckClose")?.addEventListener("click", closeMidCheck);
   $("midOverlay")?.addEventListener("click", closeMidCheck);
+  $("midBallsConfirm")?.addEventListener("click", confirmMidCheck);
+
 
   // ★投資額の追加
   $("calcBtn")?.addEventListener("click", confirmInvest);
