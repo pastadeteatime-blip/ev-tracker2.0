@@ -68,6 +68,7 @@ let hasStarted = false;      // 開始済フラグ
 let investFromStop = false;  // 投資カードに来た理由
 let midCheckTempCounter = null; // 仮の現在回転数
 let isSwitchingMachine = false;
+let lastConfirmedInvestYen = 0;
 
 
 
@@ -879,6 +880,23 @@ function updateInvestButtons() {
   $("sub500") && ($("sub500").disabled = investYen < 500);
 }
 
+// マイナス用の関数
+function undoLastInvest() {
+  if (lastConfirmedInvestYen <= 0) {
+    alert("戻せる投資がありません");
+    return;
+  }
+
+  confirmedInvestYen -= lastConfirmedInvestYen;
+  if (confirmedInvestYen < 0) confirmedInvestYen = 0;
+
+  lastConfirmedInvestYen = 0;
+
+  renderConfirmedInvest();
+  saveSession();
+}
+
+
 // ===== 総投資 =====
 function confirmInvest() {
   const add = investYen;
@@ -888,6 +906,7 @@ function confirmInvest() {
     return;
   }
 
+  lastConfirmedInvestYen = add;   // ★記録
   confirmedInvestYen += add;
 
  const k = add / 1000;
@@ -1705,13 +1724,11 @@ function init() {
   $("midOverlay")?.addEventListener("click", closeMidCheck);
   $("midBallsConfirm")?.addEventListener("click", confirmMidCheck);
 
+  $("calcBtn")?.addEventListener("click", confirmInvest); // ★投資額の追加
+  $("finalCalcBtn")?.addEventListener("click", calc); // ★期待値計算
+  $("undoInvest")?.addEventListener("click", undoLastInvest); //投資額を戻す
 
-  // ★投資額の追加
-  $("calcBtn")?.addEventListener("click", confirmInvest);
-
-  // ★期待値計算
-  $("finalCalcBtn")?.addEventListener("click", calc);
-
+  
   $("resetBtn")?.addEventListener("click", resetSelectedMachineTotals);
 
   $("investYen")?.addEventListener("change", () => {
