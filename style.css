@@ -39,7 +39,12 @@ body{
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   margin: 0;
   padding: 20px;
-  background: linear-gradient(180deg, var(--blue-top) 0%, var(--blue-main) 50%, var(--blue-bottom) 100%);
+  background: linear-gradient(
+    180deg,
+    #02042b 0%,
+    #042b66 60%,
+    #266ccb 100%
+  );
   color: var(--text);
 }
 
@@ -55,7 +60,7 @@ body::before{
     radial-gradient(circle at 55% 12%, rgba(255,255,255,0.35) 1.1px, transparent 3px),
     radial-gradient(circle at 12% 82%, rgba(255,255,255,0.40) 1.2px, transparent 3px);
   background-size: 240px 240px;
-  opacity: 0.25;
+  opacity: 0.12;
 }
 
 body > *{ position: relative; z-index: 1; }
@@ -66,15 +71,21 @@ h1{ margin: 0 0 10px; }
 .container{ max-width: 760px; margin: 0 auto; }
 
 .card{
-  background: var(--card);
-  border: 1px solid var(--card-border);
+  background: rgba(255,255,255,0.96);  /* 0.92 → 0.96 */
+  border: 1px solid rgba(255,255,255,0.08);
+
   border-radius: var(--r-card);
   padding: 16px;
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.35);
+
+  backdrop-filter: none;              /* ← ブラー削除 */
+  -webkit-backdrop-filter: none;
+
   margin-bottom: 16px;
 }
+
 
 /* ===== Logo ===== */
 .logo{
@@ -100,14 +111,10 @@ h1{ margin: 0 0 10px; }
 
 /* ===== Form blocks ===== */
 label{
-  display:block;
-  background: rgba(255,255,255,0.78);
-  border: 1px solid rgba(2, 6, 23, 0.10);
-  border-radius: var(--r-control);
-  padding: 12px;
-  margin-bottom: 12px;
-  color: var(--text);
+  background: rgba(255,255,255,0.92);
+  border: 1px solid rgba(0,0,0,0.08);
 }
+
 
 input, select{
   width: 100%;
@@ -152,10 +159,21 @@ button:active,
 #calcBtn{
   width: 100%;
   margin-top: 8px;
-  background: linear-gradient(180deg, var(--yellow) 0%, var(--yellow-deep) 100%);
-  color: #4a3600;
-  border: 1px solid rgba(74, 54, 0, 0.35);
-  box-shadow: 0 4px 0 rgba(74, 54, 0, 0.35), 0 10px 24px rgba(0,0,0,0.18);
+
+  background: linear-gradient(
+    180deg,
+    #deba5a 0%,
+    #b8922f 100%
+  );
+
+  color: #2b1f00;
+  border: 1px solid rgba(120, 90, 20, 0.5);
+
+  box-shadow:
+    0 4px 0 rgba(120, 90, 20, 0.6),
+    0 12px 24px rgba(0,0,0,0.25);
+
+  text-shadow: 0 1px 1px rgba(255,255,255,0.4);
 }
 
 /* リセット（控えめ） */
@@ -306,26 +324,28 @@ progress::-webkit-progress-value{
   flex: 1;
   padding: 14px 0;
   border-radius: var(--r-chip);
-  border: 1px solid rgba(2, 6, 23, 0.14);
-  cursor: pointer;
+  border: 1px solid rgba(4, 43, 102, 0.6);
 
-  /* 背景固定（白化防止） */
-  background: linear-gradient(180deg, #4fc3f7 0%, #2196f3 100%);
+  background: linear-gradient(
+    180deg,
+    #266ccb 0%,
+    #042b66 100%
+  );
+
   color: #ffffff;
-
-  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
-  box-shadow: 0 8px 16px rgba(2, 6, 23, 0.12);
-
-  transition: transform 0.08s ease, filter 0.12s ease, box-shadow 0.12s ease;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  box-shadow: 0 8px 18px rgba(2, 6, 23, 0.25);
 }
 
 .chip:hover{ filter: brightness(1.03); }
 
 .chip.sub{
-  background: linear-gradient(180deg, #f87171 0%, #dc2626 100%);
-  color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.30);
-}
+  background: linear-gradient(
+    180deg,
+    #b91c1c 0%,
+    #7f1d1d 100%
+  );
+  }
 
 .chip.clear{
   background: linear-gradient(180deg, #e5e7eb 0%, #cbd5e1 100%);
@@ -365,17 +385,12 @@ progress::-webkit-progress-value{
   opacity: 0.9;
 }
 
-.log-actions{
-  display:flex;
-  gap:8px;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-
 .chip.state{
-  background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
-  color:#fff;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.22);
+  background: linear-gradient(
+    180deg,
+    #3d82e6 0%,
+    #042b66 100%
+  );
 }
 
 .log-meta{
@@ -392,15 +407,10 @@ progress::-webkit-progress-value{
 }
 
 .log-item{
-  background: rgba(255,255,255,0.72);
-  border: 1px solid rgba(2,6,23,0.10);
-  border-radius: 14px;
-  padding: 10px 12px;
-  display:flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(0,0,0,0.06);
 }
+
 
 .log-item small{ opacity: 0.75; }
 
@@ -523,10 +533,21 @@ progress.goal-rainbow::-moz-progress-bar{
 
 #finalCalcBtn{
   width: 100%;
-  background: linear-gradient(180deg, #bbf7d0 0%, #22c55e 100%);
-  color: #14532d;
-  border: 1px solid rgba(20, 83, 45, 0.3);
-  box-shadow: 0 3px 0 rgba(20, 83, 45, 0.3), 0 8px 16px rgba(0,0,0,0.15);
+
+  background: linear-gradient(
+    180deg,
+    #deba5a 0%,
+    #a88422 100%
+  );
+
+  color: #2b1f00;
+  border: 1px solid rgba(120, 90, 20, 0.6);
+
+  box-shadow:
+    0 4px 0 rgba(120, 90, 20, 0.6),
+    0 12px 24px rgba(0,0,0,0.25);
+
+  text-shadow: 0 1px 1px rgba(255,255,255,0.4);
 }
 
 /* 機種情報：共通フェード演出（ボーダー/確率/突入率で使う） */
@@ -803,6 +824,7 @@ progress.goal-rainbow::-moz-progress-bar{
 /* タイトルは通常位置 */
 .card-header .section-title {
   margin: 0;
+  margin-left: auto;
 }
 
 /* 回転率チェックを「右上にちょこん」 */
@@ -831,10 +853,12 @@ progress.goal-rainbow::-moz-progress-bar{
 .card-header {
   display: flex;
   align-items: center;
+  justify-content: space-between; 
+  flex-direction: row-reverse;
 }
 
 .card-header #btnMidCheck {
-  margin-left: auto;
+  margin-left: 0;        /* ← 変更 */
 }
 
 /* 回転ログ右上・小ボタン確定版 */
@@ -872,10 +896,12 @@ progress.goal-rainbow::-moz-progress-bar{
   z-index: 40; /* midCheckCard(50)より下 */
 }
 
-.mid-balls-input{
-  margin: 10px 0 8px;
-}
-#midBallsConfirm{
-  width: 100%;
-  margin-bottom: 6px;
+.mid-balls-input{ margin: 10px 0 8px; }
+#midBallsConfirm{ width: 100%; margin-bottom: 6px; }
+
+.chip.undo{
+  background: linear-gradient(180deg, #f87171 0%, #dc2626 100%);
+  color: #ffffff;
+  border: 1px solid rgba(220,38,38,0.35);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.30);
 }
