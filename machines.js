@@ -3,6 +3,53 @@
 
 window.MACHINES = [
   {
+    id: "emadoka3",
+    name: "e魔法少女まどか☆マギカ3 時間遡行～始まりの願い～",
+    perSpinPayBalls: 12.57,
+    costPer1kBalls: 250,
+    border: { 25: 19.89, 28: 22.28, 30: 23.87, 33: 26.25 },
+    jackpot: "1/319.96",
+    rushEntry: "70%",
+    hitOptions: ["tan", "rushEnd", "ltEnd"],
+    restart: { tan: 0, rushEnd: 100, ltEnd: 130 },
+    tanPayout: { disp: 450, net: 420 },
+   },
+
+  {
+    id: "ekabaneri2",
+    name: "e甲鉄城のカバネリ2 咲かせや燐然",
+    perSpinPayBalls: 14.61,
+    costPer1kBalls: 250,
+    border: { 25: 17.11, 28: 19.16, 30: 22.58, 33: 27.37 },
+    jackpot: "319.7",
+    rushEntry: "50%",
+    hitOptions: ["tan", "rushEnd"],
+    restart: {tan: 0, rushEnd: 134},
+    tanPayout: { disp: 750, net: 700 },
+  }, 
+
+  {
+  id: "rezero_s2_249",
+  name: "P Re:ゼロから始める異世界生活 season2 249ver.",
+  perSpinPayBalls: 15.07,
+  costPer1kBalls: 250,
+  border: { 25: 16.59, 28: 18.58, 30: 19.91, 33: 21.9 },
+  jackpot: "1/249.9",
+  rushEntry: "60%",
+  tanPayout: { disp: 300, net: 280 },
+ },
+ 
+ {
+  id: "rezero_s2_129",
+  name: "P Re:ゼロから始める異世界生活 season2 129ver.",
+  perSpinPayBalls: 15.6,
+  costPer1kBalls: 250,
+  border: { 25: 16.02, 28: 17.94, 30: 19.22, 33: 21.15 },
+  jackpot: "1/129.9",
+  rushEntry: "50%",
+},
+
+  {
     id: "madoka3",
     name: "P魔法少女まどか☆マギカ3",
     perSpinPayBalls: 14.85,
