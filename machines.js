@@ -12,6 +12,8 @@ window.MACHINES = [
     rushEntry: "70%",
     hitOptions: ["tan", "rushEnd", "ltEnd"],
     restart: { tan: 0, rushEnd: 100, ltEnd: 130 },
+    rushEndAdjustable: true,
+    rushEndAdjustMax: 4,
     tanPayout: { disp: 450, net: 420 },
    },
 
