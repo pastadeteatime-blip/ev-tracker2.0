@@ -38,10 +38,26 @@
         <label class="machine-label">
           機種
           <select id="machineSelect"></select>
+          <button type="button" id="favoriteBtn" class="chip neutral">☆ お気に入り</button>
         </label>
+<div class="exchange-row">
 
-        <p id="infoBorder" class="equivalent-border machine-fade">ボーダー：— 回/k</p>
+  <label class="exchange-label">
+    交換率（100円）
+    <select id="exchangeSelect">
+      <option value="25">25玉（等価）</option>
+      <option value="28" selected>28玉</option>
+      <option value="30">30玉</option>
+      <option value="33">33玉</option>
+    </select>
+  </label>
+  
+  <p id="infoBorder" class="equivalent-border machine-fade">
+  ボーダー：— 回/k
+</p>
 
+</div>
+        
         <div class="rate-row">
           <p id="infoJackpot" class="machine-fade">図柄揃い確率：—</p>
           <p id="infoRush" class="machine-fade">ラッシュ突入率：—</p>
@@ -77,11 +93,23 @@
 
           <!-- 当たり後に見える -->
           <div class="log-actions-after is-hidden" id="logActionsAfter">
-            <button type="button" class="chip state" id="btnCharge">チャージ</button>
-            <button type="button" class="chip state" id="btnTan">単発</button>
-            <button type="button" class="chip state" id="btnRushEnd">RUSH終了</button>
-            <button type="button" class="chip state" id="btnLtEnd">LT終了</button>
-            <button type="button" class="chip sub" id="btnUndo2">戻す</button>
+  <button type="button" class="chip state" id="btnCharge">チャージ</button>
+  <button type="button" class="chip state" id="btnTan">単発</button>
+  <button type="button" class="chip state" id="btnRushEnd">RUSH終了</button>
+  <button type="button" class="chip state" id="btnLtEnd">LT終了</button>
+  <button type="button" class="chip sub" id="btnUndo2">戻す</button>
+  <div id="rushEndAdjustRow" class="is-hidden">
+    <label>
+      RUSH終了 上乗せ
+      <select id="rushEndAdjust">
+        <option value="0">+0</option>
+        <option value="1">+1</option>
+        <option value="2">+2</option>
+        <option value="3">+3</option>
+        <option value="4">+4</option>
+      </select>
+    </label>
+  </div>
           </div>
 
           <!-- 表記出玉 入力パネル（RUSH/LTの時だけ出す） -->
