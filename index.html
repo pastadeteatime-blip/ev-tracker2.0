@@ -37,8 +37,15 @@
       <div class="machine-row">
         <label class="machine-label">
           機種
-          <select id="machineSelect"></select>
+          <button type="button" id="machinePickerOpen" class="machine-picker-open">
+            <span id="selectedMachineName">機種を選択</span>
+            <span class="machine-picker-open__hint">検索</span>
+          </button>
+          <select id="machineSelect" class="machine-select-native" aria-hidden="true" tabindex="-1"></select>
           <button type="button" id="favoriteBtn" class="chip neutral">☆ お気に入り</button>
+          <p id="infoBorder" class="equivalent-border machine-fade">
+  繝懊・繝繝ｼ・壺・蝗・k
+</p>
         </label>
 <div class="exchange-row">
 
@@ -52,11 +59,38 @@
     </select>
   </label>
   
-  <p id="infoBorder" class="equivalent-border machine-fade">
+  <p class="equivalent-border machine-fade is-hidden">
   ボーダー：— 回/k
 </p>
 
 </div>
+
+        <div class="store-row">
+          <label>
+            店を選択
+            <button type="button" id="storePickerOpen" class="store-picker-open">
+              <span id="selectedStoreName">店舗を選択</span>
+              <span class="store-picker-open__hint">検索</span>
+            </button>
+            <select id="storeSelect"></select>
+          </label>
+          <button type="button" id="storeAddBtn" class="chip neutral">店舗を追加</button>
+          <button type="button" id="storeSaveBtn" class="chip state is-hidden">保存</button>
+          <button type="button" id="storeCancelBtn" class="chip sub is-hidden">戻る</button>
+          <label>
+            店
+            <input type="text" id="storeName" list="storeList" placeholder="店名を入力" />
+            <datalist id="storeList"></datalist>
+          </label>
+          <div class="owned-summary">
+            <span id="ownedKeyLabel">店・レート未設定</span>
+            <strong id="ownedBalance">持ち玉：0玉</strong>
+            <div class="owned-edit">
+              <input type="number" id="ownedBalanceInput" inputmode="numeric" min="0" step="1" placeholder="持ち玉を入力" />
+              <button type="button" id="ownedBalanceSaveBtn" class="chip neutral">更新</button>
+            </div>
+          </div>
+        </div>
         
         <div class="rate-row">
           <p id="infoJackpot" class="machine-fade">図柄揃い確率：—</p>
@@ -97,7 +131,7 @@
   <button type="button" class="chip state" id="btnTan">単発</button>
   <button type="button" class="chip state" id="btnRushEnd">RUSH終了</button>
   <button type="button" class="chip state" id="btnLtEnd">LT終了</button>
-  <button type="button" class="chip sub" id="btnUndo2">戻す</button>
+  <button type="button" class="chip undo" id="btnUndo2">戻す</button>
   <div id="rushEndAdjustRow" class="is-hidden">
     <label>
       RUSH終了 上乗せ
@@ -145,12 +179,23 @@
 
     <!-- 投資（仮確定） -->
     <section class="card" id="investCard">
+      <div class="play-source-tabs" role="group" aria-label="プレイ種別">
+        <button type="button" class="chip state is-active" id="playCashBtn">現金</button>
+        <button type="button" class="chip neutral" id="playOwnedBtn">持ち玉</button>
+      </div>
+
       <label>
         投資額（今回追加分）
         <input type="number" id="investYen" inputmode="numeric" min="0" step="500"/>
       </label>
 
+      <label id="ownedUseLabel" class="is-hidden">
+        持ち玉使用（玉）
+        <input type="number" id="ownedUseBalls" inputmode="numeric" min="0" step="125"/>
+      </label>
+
       <p id="investConfirmed" class="invest-confirmed">仮確定投資：0 円</p>
+      <p id="ownedConfirmed" class="invest-confirmed">確定持ち玉使用：0玉</p>
 
       <div class="invest-buttons" role="group" aria-label="投資額の操作">
         <div class="invest-row">
@@ -168,6 +213,7 @@
       </div>
 
       <button type="button" id="calcBtn">投資額の追加</button>
+      <button type="button" id="ownedUseBtn" class="is-hidden">持ち玉を投入</button>
 
       <p id="result" aria-live="polite"></p>
     </section>
@@ -181,7 +227,10 @@
       <div class="rate-meter rate-meter--compact is-hidden" id="finalRateMeter" aria-label="今回の回転率メーター">
         <div class="rate-meter__scale">
           <span id="finalMeterMin" class="rate-meter__tick">—</span>
-          <span class="rate-meter__tick">ボーダー</span>
+          <span class="rate-meter__tick rate-meter__center">
+            <span id="finalMeterBorderValue" class="rate-meter__border-value">—</span>
+            <span>ボーダー</span>
+          </span>
           <span id="finalMeterMax" class="rate-meter__tick">—</span>
         </div>
 
@@ -199,7 +248,9 @@
 
     <!-- 累計 -->
     <section class="card" id="totalCard">
-      <p id="totalSpin">累計確率：0</p>
+      <h2 class="section-title">機種別累計</h2>
+      <div id="machineTotalCards" class="machine-total-cards"></div>
+      <p id="totalSpin">初当たり確率：0</p>
       <p id="totalInvest">累計投資：0 円</p>
       <p id="avgRate">累計回転率：0 回/k</p>
       <p id="total">累積期待値：0 玉</p>
@@ -217,6 +268,64 @@
   </main>
 
   <!-- scripts（先に machines → app の順） -->
+  <nav class="bottom-tabs" aria-label="実績表示切り替え">
+    <button type="button" id="totalTabAll" class="bottom-tab">
+      全機種
+    </button>
+    <button type="button" id="totalTabSelected" class="bottom-tab is-active">
+      選択機種
+    </button>
+  </nav>
+
+  <div id="machinePickerOverlay" class="machine-picker-overlay is-hidden" aria-hidden="true"></div>
+  <section
+    id="machinePickerModal"
+    class="machine-picker-modal is-hidden"
+    aria-label="機種検索"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div class="machine-picker-header">
+      <h2>機種を選択</h2>
+      <button type="button" id="machinePickerClose" class="machine-picker-close" aria-label="閉じる">×</button>
+    </div>
+    <input
+      type="search"
+      id="machineSearchInput"
+      class="machine-search-input"
+      placeholder="機種名・メーカー・スペックで検索"
+      autocomplete="off"
+    />
+    <div class="machine-picker-tabs" role="tablist" aria-label="機種カテゴリ">
+      <button type="button" class="machine-picker-tab is-active" data-machine-filter="all">すべて</button>
+      <button type="button" class="machine-picker-tab" data-machine-filter="favorite">お気に入り</button>
+      <button type="button" class="machine-picker-tab" data-machine-filter="recent">最近</button>
+    </div>
+    <div id="machinePickerList" class="machine-picker-list"></div>
+  </section>
+
+  <div id="storePickerOverlay" class="store-picker-overlay is-hidden" aria-hidden="true"></div>
+  <section
+    id="storePickerModal"
+    class="store-picker-modal is-hidden"
+    aria-label="店舗検索"
+    role="dialog"
+    aria-modal="true"
+  >
+    <div class="store-picker-header">
+      <h2>店舗を選択</h2>
+      <button type="button" id="storePickerClose" class="store-picker-close" aria-label="閉じる">×</button>
+    </div>
+    <input
+      type="search"
+      id="storeSearchInput"
+      class="store-search-input"
+      placeholder="店舗名で検索"
+      autocomplete="off"
+    />
+    <div id="storePickerList" class="store-picker-list"></div>
+  </section>
+
   <script src="./machines.js"></script>
   <script src="./app.js"></script>
 
@@ -230,7 +339,10 @@
     <div class="rate-meter" id="midRateMeter" aria-label="回転率メーター">
       <div class="rate-meter__scale">
         <span id="midMeterMin" class="rate-meter__tick">—</span>
-        <span id="midMeterCenter" class="rate-meter__tick">ボーダー</span>
+        <span id="midMeterCenter" class="rate-meter__tick rate-meter__center">
+          <span id="midMeterBorderValue" class="rate-meter__border-value">—</span>
+          <span>ボーダー</span>
+        </span>
         <span id="midMeterMax" class="rate-meter__tick">—</span>
       </div>
 
@@ -260,11 +372,6 @@
       <div class="kv-row">
         <span class="kv-key">現在の回転率</span>
         <span class="kv-val" id="midRateVal">—</span>
-      </div>
-
-      <div class="kv-row">
-        <span class="kv-key">28交換ボーダー</span>
-        <span class="kv-val" id="midBorderVal">—</span>
       </div>
 
       <div class="kv-row">
