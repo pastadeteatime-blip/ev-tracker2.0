@@ -1,7 +1,3 @@
-/* =========================
-   期待値トラッカー app.js
-   ========================= */
-
 const GOAL_YEN = 1_000_000;
 const YEN_PER_BALL = 4;
 const DEFAULT_COST_PER_1K_BALLS = 250;
@@ -9,10 +5,8 @@ const DEFAULT_COST_PER_1K_BALLS = 250;
 const TAN_PAYOUT_DISP = 400;
 const TAN_PAYOUT_NET  = 360;
 
-// ===== 機種DB =====
 const MACHINES = window.MACHINES;
 
-// localStorage keys（累計）
 const LS_PREFIX = "evTracker_machineTotals_v1_";
 const LS_SELECTED_MACHINE = "evTracker_selectedMachineId_v1";
 const LS_SELECTED_EXCHANGE = "evTracker_selectedExchange_v1";
@@ -25,13 +19,12 @@ const LS_STORE_EXCHANGES = "evTracker_storeExchanges_v1";
 const LS_TOTAL_VIEW_MODE = "evTracker_totalViewMode_v1";
 const LS_DAILY_LOG_DATE = "evTracker_dailyLogDate_v1";
 
-// セッション保存
+
 const LS_SESSION_PREFIX = "evTracker_session_v1_";
 function getSessionKey(machineId) {
   return `${LS_SESSION_PREFIX}${machineId}`;
 }
 
-// ===== 状態 =====
 let selectedMachine = MACHINES[0];
 let currentGoalIndex = 0;
 let selectedExchange = 28;
@@ -40,22 +33,25 @@ let playSource = "cash";
 let totalViewMode = localStorage.getItem(LS_TOTAL_VIEW_MODE) === "all" ? "all" : "selected";
 let isAddingStore = false;
 
-// 投資
 let investYen = 0;
 let confirmedInvestYen = 0;
 let ownedUseBalls = 0;
 let confirmedOwnedBalls = 0;
 let lastConfirmedOwnedBalls = 0;
 
-// 累計
 let totals = {
   totalExpectBalls: 0,
   totalExpectYen: 0,
   totalSpin: 0,
   totalInvestYen: 0,
   totalOwnedBallsUsed: 0,
+  totalOutputBallsUsed: 0,
   totalKInvested: 0,
   totalConsumedK: 0,
+  totalTrueBorderWeighted: 0,
+  totalTrueBorderCount: 0,
+  totalOwnedRatioWeighted: 0,
+  totalOwnedRatioCount: 0,
   totalHitCount: 0,
   totalTanCount: 0,
   totalRushCount: 0,
@@ -66,7 +62,7 @@ let totals = {
   totalLtPayoutDispCount: 0,
 };
 
-// 回転ログ
+
 let spinLog = [];
 let pendingIndex = -1;
 let nextStartCounter = 0;
@@ -81,7 +77,6 @@ let lastConfirmedInvestYen = 0;
 let lastMidCheckBalls = null;
 let rushEndAdjustIndex = -1;
 
-// ===== DOM helper =====
 function $(id) {
   return document.getElementById(id);
 }
@@ -109,7 +104,6 @@ function setText(id, text) {
   if (el) el.textContent = text;
 }
 
-// ===== 総投資 表示 =====
 function getExchangeYenPerBall() {
   return 100 / selectedExchange;
 }
@@ -408,14 +402,14 @@ function renderOwnedBalance() {
 
 function saveOwnedBalanceInput() {
   if (!selectedStore) {
-    alert("先に店を選択してください");
+    alert("\u5148\u306b\u5e97\u3092\u9078\u629e\u3057\u3066\u304f\u3060\u3055\u3044");
     return;
   }
 
   const input = $("ownedBalanceInput");
   const value = Number(input?.value);
   if (!Number.isFinite(value) || value < 0) {
-    alert("持ち玉を0以上の数値で入力してください");
+    alert("\u6301\u3061\u7389\u30920\u4ee5\u4e0a\u306e\u6570\u5024\u3067\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044");
     input?.focus();
     return;
   }
@@ -463,7 +457,7 @@ function saveNewStore() {
   const input = $("storeName");
   const name = normalizeStoreName(input?.value);
   if (!name) {
-    alert("追加する店名を入力してください");
+    alert("\u8ffd\u52a0\u3059\u308b\u5e97\u540d\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044");
     input?.focus();
     return;
   }
@@ -476,14 +470,14 @@ function saveNewStore() {
 function renderConfirmedInvest() {
   const el = $("investConfirmed");
   if (!el) return;
-  el.textContent = `総投資：${fmtInt(confirmedInvestYen)} 円`;
+  el.textContent = `現金投資：${fmtInt(confirmedInvestYen)} 円`;
 }
 
-// ===== スクロール =====
+
 function renderConfirmedOwned() {
   const el = $("ownedConfirmed");
   if (!el) return;
-  el.textContent = `確定持ち玉使用：${fmtInt(confirmedOwnedBalls)}玉`;
+  el.textContent = `持ち玉使用：${fmtInt(confirmedOwnedBalls)}玉`;
 }
 
 function scrollToLogCard() {
@@ -498,13 +492,30 @@ function scrollToInvestCard() {
   card.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function scrollToFinalCalcCard() {
+  const card = $("finalCalcCard");
+  if (!card) return;
+  requestAnimationFrame(() => {
+    card.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+}
+
+function flashFinalCalcButton() {
+  const btn = $("finalCalcBtn");
+  if (!btn) return;
+  btn.classList.remove("is-ev-flashing");
+  void btn.offsetWidth;
+  btn.classList.add("is-ev-flashing");
+  window.setTimeout(() => btn.classList.remove("is-ev-flashing"), 900);
+}
+
 function scrollToMidCheckButton() {
   const btn = $("btnMidCheck");
   if (!btn) return;
   btn.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
-// ===== セッション保存/復元 =====
+
 function getTodayStamp() {
   const d = new Date();
   const y = d.getFullYear();
@@ -701,6 +712,7 @@ function renderFavoriteButton() {
 
   const fav = isFavoriteMachine(selectedMachine.id);
   btn.textContent = fav ? "★ お気に入り" : "☆ お気に入り";
+  btn.classList.toggle("is-favorite", fav);
 }
 
 function getRecentMachineIds() {
@@ -808,14 +820,13 @@ function closeMachinePicker() {
   $("machinePickerModal")?.classList.add("is-hidden");
 }
 
-// ===== 入力ロック =====
+
 function setCounterInputLocked(locked) {
   const el = $("counterNow");
   if (!el) return;
   el.disabled = locked;
 }
 
-// ===== 回転率 tier =====
 function getRateTierClass(rate, border) {
   if (!Number.isFinite(rate) || !Number.isFinite(border)) return "";
   const d = rate - border;
@@ -832,7 +843,7 @@ function setResultTierClass(tierClass) {
   if (tierClass) el.classList.add(tierClass);
 }
 
-// ===== ボタン表示切替 =====
+
 function setLogMode(mode) {
   const main = $("logActionsMain");
   const after = $("logActionsAfter");
@@ -877,7 +888,7 @@ function updateStartButton() {
   }
 }
 
-// ===== 回転ログリセット =====
+
 function resetSpinLog(skipSave = false) {
   spinLog = [];
   pendingIndex = -1;
@@ -901,7 +912,6 @@ function resetSpinLog(skipSave = false) {
   if (!skipSave) saveSession();
 }
 
-// ===== 開始 =====
 function addStartEvent() {
   try {
     const input = $("counterNow");
@@ -941,20 +951,19 @@ function addStartEvent() {
     saveSession();
   } catch (e) {
     console.error(e);
-    alert("開始処理でエラーが出ています（Consoleを確認してください）");
+    alert("開始処理でエラーが出ています。");
   }
 
   setCounterInputLocked(false);
 }
 
-// ===== 当たり =====
 function addHitEvent() {
   if (pendingIndex !== -1) {
     alert("当たり種別（単発 / RUSH / LT）を先に選んでください");
     return;
   }
   if (payoutConfirmIndex !== -1) {
-    alert("先に「表記出玉を確定」してください");
+    alert("先に「表記出玉」を確定してください");
     return;
   }
 
@@ -999,7 +1008,6 @@ function addHitEvent() {
   scrollToInvestCard();
 }
 
-// ===== 再開回転数 =====
 function getRestartValue(type) {
   const map = selectedMachine?.restart || { tan: 0, rushEnd: 0, ltEnd: 0 };
 
@@ -1021,7 +1029,6 @@ function getRestartValue(type) {
   return 0;
 }
 
-// ===== 当たり結果確定 =====
 function confirmHitOutcome(type) {
   if (pendingIndex === -1) {
     alert("先に「当たり」を押してください");
@@ -1079,7 +1086,6 @@ function confirmHitOutcome(type) {
   saveSession();
 }
 
-// ===== 表記出玉 確定 =====
 function confirmPayout() {
   if (payoutConfirmIndex === -1) return;
 
@@ -1116,7 +1122,6 @@ function confirmPayout() {
   saveSession();
 }
 
-// ===== ヤメ持ち玉 確定 =====
 function confirmEndBalls() {
   if (!endBallsPending) return;
 
@@ -1145,7 +1150,6 @@ function confirmEndBalls() {
   scrollToInvestCard();
 }
 
-// ===== ひとつ戻す =====
 function undoSpinEventUnified() {
   if (endBallsPending) {
     endBallsPending = false;
@@ -1263,7 +1267,6 @@ function undoSpinEventUnified() {
   saveSession();
 }
 
-// ===== ヤメ =====
 function addStopEvent() {
   if (!hasStarted || spinLog.length === 0) {
     alert("先に「開始」を押してください");
@@ -1275,11 +1278,11 @@ function addStopEvent() {
     return;
   }
   if (payoutConfirmIndex !== -1) {
-    alert("先に「表記出玉を確定」してください");
+    alert("先に「表記出玉」を確定してください");
     return;
   }
   if (endBallsPending) {
-    alert("先に「持ち玉を確定」してください");
+    alert("先に「持ち玉」を確定してください");
     return;
   }
 
@@ -1340,7 +1343,6 @@ function addStopEvent() {
   saveSession();
 }
 
-// ===== 機種情報 =====
 function fmtBorder(v) {
   if (v === null || v === undefined || !Number.isFinite(v)) return "—";
   return v.toFixed(1);
@@ -1356,7 +1358,7 @@ function renderMachineInfo(animate = false) {
   const rushEl = $("infoRush");
 
   const borderText = `${selectedExchange}ボーダー：${fmtBorder(borderVal)} 回/k`;
-  const jackpotText = `図柄揃い確率：${m?.jackpot ?? "—"}`;
+  const jackpotText = `図柄当たり確率：${m?.jackpot ?? "—"}`;
   const rushText = `ラッシュ突入率：${m?.rushEntry ?? "—"}`;
 
   const targets = [
@@ -1399,7 +1401,7 @@ function renderMachineInfo(animate = false) {
   });
 }
 
-// ===== 機種セレクト =====
+
 function initMachineSelect() {
   const sel = $("machineSelect");
   if (!sel) return;
@@ -1460,16 +1462,7 @@ if (exchangeSel) {
     renderMachineInfo(true);
     renderOwnedBalance();
 
-    const finalResultText = $("finalResult")?.textContent?.trim();
-    if (finalResultText) {
-      const borderVal = getCurrentBorder();
-      const rateText = $("finalResult")?.textContent || "";
-      const m = rateText.match(/今回の回転率：([\d.]+)\s*回\/k/);
-      if (m) {
-        const rotationRate = Number(m[1]);
-        updateFinalRateMeter(rotationRate, borderVal);
-      }
-    }
+    $("finalRateMeter")?.classList.add("is-hidden");
   });
 }
 
@@ -1529,7 +1522,7 @@ if (exchangeSel) {
   });
 }
 
-// ===== 機種ごとのlocalStorage（累計）=====
+
 function getTotalsKey(machineId) {
   return `${LS_PREFIX}${machineId}`;
 }
@@ -1541,8 +1534,13 @@ function createEmptyTotals() {
     totalSpin: 0,
     totalInvestYen: 0,
     totalOwnedBallsUsed: 0,
+    totalOutputBallsUsed: 0,
     totalKInvested: 0,
     totalConsumedK: 0,
+    totalTrueBorderWeighted: 0,
+    totalTrueBorderCount: 0,
+    totalOwnedRatioWeighted: 0,
+    totalOwnedRatioCount: 0,
     totalHitCount: 0,
     totalTanCount: 0,
     totalRushCount: 0,
@@ -1564,8 +1562,13 @@ function normalizeTotals(obj) {
     totalSpin: Number(obj?.totalSpin) || 0,
     totalInvestYen: Number(obj?.totalInvestYen) || 0,
     totalOwnedBallsUsed: Number(obj?.totalOwnedBallsUsed) || 0,
+    totalOutputBallsUsed: Number(obj?.totalOutputBallsUsed) || 0,
     totalKInvested: Number(obj?.totalKInvested) || 0,
     totalConsumedK: Number(obj?.totalConsumedK) || 0,
+    totalTrueBorderWeighted: Number(obj?.totalTrueBorderWeighted) || 0,
+    totalTrueBorderCount: Number(obj?.totalTrueBorderCount) || 0,
+    totalOwnedRatioWeighted: Number(obj?.totalOwnedRatioWeighted) || 0,
+    totalOwnedRatioCount: Number(obj?.totalOwnedRatioCount) || 0,
     totalHitCount: Number(obj?.totalHitCount) || 0,
     totalTanCount: Number(obj?.totalTanCount) || 0,
     totalRushCount: Number(obj?.totalRushCount) || 0,
@@ -1597,7 +1600,6 @@ function saveTotalsForSelectedMachine() {
   localStorage.setItem(key, JSON.stringify(totals));
 }
 
-// ===== 投資 =====
 function setInvestYen(value, skipSave = false) {
   investYen = Math.round(Number(value) || 0);
 
@@ -1694,7 +1696,6 @@ function undoLastInvest() {
   saveSession();
 }
 
-// ===== 総投資 =====
 function confirmInvest() {
   const add = Number(investYen);
 
@@ -1737,7 +1738,7 @@ function confirmInvest() {
 function confirmOwnedUse() {
   const store = normalizeStoreName(selectedStore || $("storeName")?.value);
   if (!store) {
-    alert("持ち玉を使う店名を入力してください");
+    alert("\u6301\u3061\u7389\u3092\u4f7f\u3046\u5e97\u540d\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044");
     $("storeName")?.focus();
     return;
   }
@@ -1748,12 +1749,12 @@ function confirmOwnedUse() {
 
   const add = Math.floor(Number(ownedUseBalls) || 0);
   if (!Number.isFinite(add) || add <= 0) {
-    alert("使用する持ち玉を入力してください");
+    alert("\u4f7f\u7528\u3059\u308b\u6301\u3061\u7389\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044");
     return;
   }
 
   if (add > getOwnedBalance()) {
-    alert("登録されている持ち玉より多くは使えません");
+    alert("\u767b\u9332\u3055\u308c\u3066\u3044\u308b\u6301\u3061\u7389\u3088\u308a\u591a\u304f\u306f\u4f7f\u3048\u307e\u305b\u3093");
     return;
   }
 
@@ -1786,12 +1787,35 @@ function confirmOwnedUse() {
   investFromStop = false;
 }
 
-// ===== 期待値計算（裏）=====
+
 function calcExpectationBalls(rotationRate, spinCount) {
   const P = selectedMachine.perSpinPayBalls;
   const C = selectedMachine.costPer1kBalls ?? DEFAULT_COST_PER_1K_BALLS;
   const expected = spinCount * (P - C / rotationRate);
   return Math.round(expected);
+}
+
+function calcTrueBorder(ownedRatio) {
+  const equalBorder = Number(selectedMachine?.border?.[25]);
+  const cashBorder = Number(selectedMachine?.border?.[selectedExchange]);
+  const ratio = Math.max(0, Math.min(1, Number(ownedRatio) || 0));
+
+  if (!Number.isFinite(equalBorder) || !Number.isFinite(cashBorder)) return null;
+  return cashBorder - (cashBorder - equalBorder) * ratio;
+}
+
+function calcWeightedAverage(sum, count) {
+  const s = Number(sum) || 0;
+  const c = Number(count) || 0;
+  return c > 0 ? s / c : null;
+}
+
+function formatOwnedRatioForTotals(itemTotals) {
+  const ratio = calcWeightedAverage(
+    itemTotals?.totalOwnedRatioWeighted,
+    itemTotals?.totalOwnedRatioCount
+  );
+  return ratio === null ? "—" : `${Math.round(ratio * 100)}%`;
 }
 
 function animateProgressBar(barEl, toValue, duration = 650) {
@@ -1813,7 +1837,6 @@ function animateProgressBar(barEl, toValue, duration = 650) {
   requestAnimationFrame(tick);
 }
 
-// ===== 画面更新 =====
 function hasAnyTotals(t) {
   return (
     (Number(t.totalExpectBalls) || 0) !== 0 ||
@@ -1907,6 +1930,14 @@ function renderMachineTotalCards() {
       itemTotals.totalConsumedK > 0
         ? (spin / itemTotals.totalConsumedK) * 250
         : 0;
+    const avgOwnedRatio = calcWeightedAverage(
+      itemTotals.totalOwnedRatioWeighted,
+      itemTotals.totalOwnedRatioCount
+    );
+    const avgTrueBorder = calcWeightedAverage(
+      itemTotals.totalTrueBorderWeighted,
+      itemTotals.totalTrueBorderCount
+    );
     const progress = getGoalProgress(expectBalls);
 
     const card = document.createElement("article");
@@ -1918,21 +1949,34 @@ function renderMachineTotalCards() {
     title.textContent = machine.name;
     card.appendChild(title);
 
-    const totalLine = document.createElement("p");
-    totalLine.className = "machine-total-card__ev";
-    totalLine.appendChild(document.createTextNode("累積期待値："));
-    const totalValue = document.createElement("span");
-    totalValue.textContent = `${ballText}玉（${yenText}円）`;
-    setSignedColor(totalValue, expectBalls);
-    totalLine.appendChild(totalValue);
-    card.appendChild(totalLine);
+    const addMetricRow = (label, valueBuilder, extraClass = "") => {
+      const row = document.createElement("p");
+      row.className = `machine-total-card__metric${extraClass ? ` ${extraClass}` : ""}`;
+      const labelEl = document.createElement("span");
+      labelEl.className = "machine-total-card__metric-label";
+      labelEl.textContent = label;
+      const colonEl = document.createElement("span");
+      colonEl.className = "machine-total-card__metric-colon";
+      colonEl.textContent = "：";
+      const valueEl = document.createElement("span");
+      valueEl.className = "machine-total-card__metric-value";
+      valueBuilder(valueEl);
+      row.appendChild(labelEl);
+      row.appendChild(colonEl);
+      row.appendChild(valueEl);
+      return row;
+    };
 
-    const spinLine = document.createElement("p");
-    spinLine.textContent =
-      hit > 0 && spin > 0
-        ? `初当たり確率：${hit} / ${fmtInt(spin)} = 1 / ${Math.round(spin / hit)}`
-        : `初当たり確率：${hit} / ${fmtInt(spin)} = -`;
-    card.appendChild(spinLine);
+    card.appendChild(addMetricRow("累積期待値", (valueEl) => {
+      valueEl.textContent = `${ballText}玉（${yenText}円）`;
+      setSignedColor(valueEl, expectBalls);
+    }, "machine-total-card__metric--ev"));
+
+    card.appendChild(addMetricRow("初当たり確率", (valueEl) => {
+      valueEl.textContent = hit > 0 && spin > 0
+        ? `${hit} / ${fmtInt(spin)} = 1 / ${Math.round(spin / hit)}`
+        : `${hit} / ${fmtInt(spin)} = —`;
+    }));
 
     const outcomeList = document.createElement("div");
     outcomeList.className = "machine-total-card__outcomes";
@@ -1947,14 +1991,14 @@ function renderMachineTotalCards() {
       name.textContent = label;
       const value = document.createElement("span");
       value.className = "machine-total-card__outcome-value";
-      value.textContent = `${fmtInt(safeCount)}/${fmtInt(hit)}（${pct}%）`;
+      value.textContent = `${fmtInt(safeCount)}/${fmtInt(hit)}\uff08${pct}%\uff09`;
       row.appendChild(name);
       row.appendChild(value);
       outcomeList.appendChild(row);
     };
 
-    addOutcomeRow("単発", itemTotals.totalTanCount);
-    addOutcomeRow("ラッシュ", itemTotals.totalRushCount);
+    addOutcomeRow("\u5358\u767a", itemTotals.totalTanCount);
+    addOutcomeRow("\u30e9\u30c3\u30b7\u30e5", itemTotals.totalRushCount);
     addOutcomeRow("LT", itemTotals.totalLtCount);
     if (outcomeList.children.length > 0) card.appendChild(outcomeList);
 
@@ -1981,21 +2025,42 @@ function renderMachineTotalCards() {
       }
     }
 
-    const investLine = document.createElement("p");
-    investLine.textContent = `累計投資：${fmtInt(itemTotals.totalInvestYen)}円 / 持ち玉${fmtInt(itemTotals.totalOwnedBallsUsed || 0)}玉`;
-    card.appendChild(investLine);
+    const ownedBallsTotal =
+      (Number(itemTotals.totalOwnedBallsUsed) || 0) +
+      (Number(itemTotals.totalOutputBallsUsed) || 0);
+    card.appendChild(addMetricRow("累計投資", (valueEl) => {
+      valueEl.textContent = `現金${fmtInt(itemTotals.totalInvestYen)}円 / 持ち玉${fmtInt(ownedBallsTotal)}玉`;
+    }, "machine-total-card__metric--invest"));
 
-    const rateLine = document.createElement("p");
-    rateLine.textContent = `累計回転率：${fmtRate1(avgRate)} 回/k`;
-    card.appendChild(rateLine);
+    card.appendChild(addMetricRow("持ち玉比率", (valueEl) => {
+      valueEl.textContent = formatOwnedRatioForTotals(itemTotals);
+    }));
+
+    card.appendChild(addMetricRow("真ボーダー", (valueEl) => {
+      valueEl.textContent = avgTrueBorder !== null
+        ? `${fmtRate1(avgTrueBorder)} 回/k`
+        : "—";
+    }));
+
+    card.appendChild(addMetricRow("累計回転率", (valueEl) => {
+      valueEl.appendChild(document.createTextNode(`${fmtRate1(avgRate)} 回/k`));
+      if (avgTrueBorder !== null && Number.isFinite(avgTrueBorder)) {
+        const rateDiff = avgRate - avgTrueBorder;
+        const diffSpan = document.createElement("span");
+        diffSpan.className = "rate-diff";
+        if (rateDiff > 0) diffSpan.classList.add("is-plus");
+        else if (rateDiff < 0) diffSpan.classList.add("is-minus");
+        diffSpan.textContent = ` (${rateDiff >= 0 ? "+" : ""}${fmtRate1(rateDiff)})`;
+        valueEl.appendChild(diffSpan);
+      }
+    }));
 
     const goal = document.createElement("div");
     goal.className = "goal";
 
-    const goalTitle = document.createElement("p");
-    goalTitle.className = "goal-title";
-    goalTitle.textContent = getGoalLabel(progress.index);
-    goal.appendChild(goalTitle);
+    goal.appendChild(addMetricRow("目標期待値", (valueEl) => {
+      valueEl.textContent = `${fmtInt(GOAL_STEPS[progress.index])}円（${GOAL_LEVELS[progress.index]}）`;
+    }, "goal-title"));
 
     const bar = document.createElement("progress");
     bar.value = progress.value;
@@ -2003,14 +2068,14 @@ function renderMachineTotalCards() {
     bar.classList.add(getGoalColorClass(progress.index));
     goal.appendChild(bar);
 
-    const percent = document.createElement("p");
-    percent.textContent = `達成率：${(Math.floor(Math.min(100, progress.percent) * 10) / 10).toFixed(1)} %`;
-    goal.appendChild(percent);
+    goal.appendChild(addMetricRow("達成率", (valueEl) => {
+      valueEl.textContent = `${(Math.floor(Math.min(100, progress.percent) * 10) / 10).toFixed(1)} %`;
+    }));
     card.appendChild(goal);
 
     const note = document.createElement("p");
     note.className = "note";
-    note.textContent = `※ボーダー表示は${selectedExchange}玉交換、期待値計算は等価換算です`;
+    note.textContent = "※通常ボーダーは選択交換率、真ボーダーは持ち玉比率を加味、期待値は等価換算です";
     card.appendChild(note);
 
     const reset = document.createElement("button");
@@ -2108,7 +2173,11 @@ function updateView() {
 
   const invEl = $("totalInvest");
   if (invEl) {
-    invEl.innerText = `累計投資：${fmtInt(totals.totalInvestYen)}円 / 持ち玉${fmtInt(totals.totalOwnedBallsUsed || 0)}玉`;
+    const ownedBallsTotal =
+      (Number(totals.totalOwnedBallsUsed) || 0) +
+      (Number(totals.totalOutputBallsUsed) || 0);
+    invEl.innerText =
+      `累計投資：現金${fmtInt(totals.totalInvestYen)}円 / 持ち玉${fmtInt(ownedBallsTotal)}玉`;
   }
 
   const avgRate =
@@ -2167,14 +2236,13 @@ function updateView() {
     goalTitle.innerText = getGoalLabel(currentGoalIndex);
   }
 
-  const noteEl = document.querySelector(".note");
+const noteEl = document.querySelector(".note");
 if (noteEl) {
-  noteEl.textContent = `※ボーダー表示は${selectedExchange}玉交換、期待値計算は等価換算です`;
+  noteEl.textContent = "※通常ボーダーは選択交換率、真ボーダーは持ち玉比率を加味、期待値は等価換算です";
 }
   renderMachineTotalCards();
 }
 
-// ===== 回転ログ描画 =====
 function renderSpinLog() {
   const list = $("logList");
 
@@ -2217,7 +2285,7 @@ function renderSpinLog() {
 
     const addText =
       x.add > 0
-        ? `（${x.add}回転）`
+        ? `（+${x.add}回転）`
         : "";
 
     const investText =
@@ -2262,6 +2330,14 @@ function getTotalSpinsFromLog() {
 
 function getTotalPayoutFromLog() {
   return spinLog.reduce((sum, x) => sum + (Number(x.payout) || 0), 0);
+}
+
+function getPlayInputsFromLog() {
+  return spinLog.reduce((sum, row) => {
+    sum.investK += Number(row.investK) || 0;
+    sum.ownedBalls += Number(row.ownedBalls) || 0;
+    return sum;
+  }, { investK: 0, ownedBalls: 0 });
 }
 
 function getOutcomeStatsFromLog() {
@@ -2309,18 +2385,20 @@ function getOutcomeStatsFromLog() {
   });
 }
 
-// ===== 計算 =====
 function calc() {
   const spinCount = getTotalSpinsFromLog();
   if (spinCount <= 0) { alert("回転ログを入れてください"); return; }
-  if (payoutConfirmIndex !== -1) { alert("先に「表記出玉を確定」してください"); return; }
-  if (endBallsPending) { alert("先に「持ち玉を確定」してください"); return; }
+  if (payoutConfirmIndex !== -1) { alert("先に「表記出玉」を確定してください"); return; }
+  if (endBallsPending) { alert("先に「持ち玉」を確定してください"); return; }
   if (endBallsYame === null || !Number.isFinite(endBallsYame) || endBallsYame < 0) {
-    alert("ヤメ時の持ち玉が未確定です（ヤメ → 持ち玉を確定）"); return;
+    alert("ヤメ時の持ち玉が未確定です（ヤメ → 持ち玉を確定）");
+    return;
   }
 
-  const investK = confirmedInvestYen / 1000;
-  if ((!Number.isFinite(investK) || investK <= 0) && confirmedOwnedBalls <= 0) {
+  const playInputs = getPlayInputsFromLog();
+  const investK = Number(playInputs.investK) || (confirmedInvestYen / 1000);
+  const ownedBallsUsed = Number(playInputs.ownedBalls) || confirmedOwnedBalls;
+  if ((!Number.isFinite(investK) || investK <= 0) && ownedBallsUsed <= 0) {
     alert("総投資または持ち玉使用がありません");
     return;
   }
@@ -2328,11 +2406,17 @@ function calc() {
   const payout = getTotalPayoutFromLog();
   const endBalls = endBallsYame;
   const cashInvestBalls = investK * 250;
-  const investBalls = cashInvestBalls + confirmedOwnedBalls;
+  const investBalls = cashInvestBalls + ownedBallsUsed;
   const consumedBalls = investBalls + payout - endBalls;
+  const outputUsedBalls = Math.max(0, payout - endBalls);
+  const playSourceBalls = cashInvestBalls + ownedBallsUsed + outputUsedBalls;
+  const ownedRatio = playSourceBalls > 0
+    ? Math.max(0, Math.min(1, (ownedBallsUsed + outputUsedBalls) / playSourceBalls))
+    : 0;
+  const trueBorder = calcTrueBorder(ownedRatio);
 
   if (!(consumedBalls > 0)) {
-    alert("出玉/持ち玉の入力が不正です（消費玉が0以下）");
+    alert("出玉・持ち玉の入力が不正です（消費玉が0以下）");
     return;
   }
 
@@ -2347,6 +2431,7 @@ function calc() {
   totals.totalSpin += spinCount;
   totals.totalInvestYen += confirmedInvestYen;
   totals.totalOwnedBallsUsed = (Number(totals.totalOwnedBallsUsed) || 0) + confirmedOwnedBalls;
+  totals.totalOutputBallsUsed = (Number(totals.totalOutputBallsUsed) || 0) + outputUsedBalls;
   totals.totalKInvested += investK;
   totals.totalHitCount += outcomeStats.hitCount;
   totals.totalTanCount = (Number(totals.totalTanCount) || 0) + outcomeStats.tanCount;
@@ -2357,6 +2442,12 @@ function calc() {
   totals.totalLtPayoutDispSum = (Number(totals.totalLtPayoutDispSum) || 0) + outcomeStats.ltPayoutDispSum;
   totals.totalLtPayoutDispCount = (Number(totals.totalLtPayoutDispCount) || 0) + outcomeStats.ltPayoutDispCount;
   totals.totalConsumedK += consumedBalls;
+  totals.totalOwnedRatioWeighted = (Number(totals.totalOwnedRatioWeighted) || 0) + ownedRatio * spinCount;
+  totals.totalOwnedRatioCount = (Number(totals.totalOwnedRatioCount) || 0) + spinCount;
+  if (trueBorder !== null) {
+    totals.totalTrueBorderWeighted = (Number(totals.totalTrueBorderWeighted) || 0) + trueBorder * spinCount;
+    totals.totalTrueBorderCount = (Number(totals.totalTrueBorderCount) || 0) + spinCount;
+  }
 
   saveTotalsForSelectedMachine();
 
@@ -2366,7 +2457,8 @@ function calc() {
 
   const finalEl = $("finalResult");
   const borderVal = getCurrentBorder();
-  const rateDiff = Number.isFinite(borderVal) ? rotationRate - borderVal : null;
+  const diffBorder = trueBorder ?? borderVal;
+  const rateDiff = Number.isFinite(diffBorder) ? rotationRate - diffBorder : null;
   const rateDiffText = rateDiff === null
     ? ""
     : ` (${rateDiff >= 0 ? "+" : ""}${fmtRate1(rateDiff)})`;
@@ -2384,8 +2476,18 @@ function calc() {
 
     const formulaLine = document.createElement("div");
     formulaLine.textContent =
-      `${fmtInt(spinCount)} / ( 現金${fmtRate1(investK)}k + 持ち玉${fmtInt(confirmedOwnedBalls)}玉 + 出玉${fmtRate2(bonusK)}k玉 )`;
+      `${fmtInt(spinCount)} / ( 現金${fmtRate1(investK)}k + 持ち玉${fmtInt(ownedBallsUsed)}玉 + 出玉${fmtRate2(bonusK)}k玉 )`;
     finalEl.appendChild(formulaLine);
+
+    const ownedRatioLine = document.createElement("div");
+    ownedRatioLine.textContent = `持ち玉比率：${Math.round(ownedRatio * 100)}%`;
+    finalEl.appendChild(ownedRatioLine);
+
+    if (trueBorder !== null) {
+      const trueBorderLine = document.createElement("div");
+      trueBorderLine.textContent = `真ボーダー：${fmtRate1(trueBorder)} 回/k`;
+      finalEl.appendChild(trueBorderLine);
+    }
 
     const rateLine = document.createElement("div");
     rateLine.appendChild(document.createTextNode(`今回の回転率：${fmtRate1(rotationRate)} 回/k`));
@@ -2402,7 +2504,7 @@ function calc() {
     finalEl.appendChild(evLine);
   }
 
-  updateFinalRateMeter(rotationRate, borderVal);
+  updateFinalRateMeter(rotationRate, diffBorder);
 
   hasStarted = false;
   updateStartButton();
@@ -2417,9 +2519,9 @@ function calc() {
 
   setInvestYen(0);
   lastMidCheckBalls = null;
+  scrollToFinalCalcCard();
 }
 
-// ===== 表記出玉 → 純増 =====
 function calcNetFromDisplayedPayout(disp) {
   const v = Math.floor(Number(disp));
   if (!Number.isFinite(v) || v <= 0) return 0;
@@ -2437,7 +2539,6 @@ function calcNetFromDisplayedPayout(disp) {
   return BASE_NET + restNet;
 }
 
-// ===== リセット =====
 function resetAllMachineTotals() {
   if (!confirm("本当に全機種のログを削除しますか？")) return;
 
@@ -2557,7 +2658,6 @@ function calcGoalIndex(totalEvYen) {
   return GOAL_STEPS.length - 1;
 }
 
-// ===== 段階目標 =====
 const GOAL_STEPS = [
   1_000,
   5_000,
@@ -2584,7 +2684,7 @@ function getGoalColorClass(index) {
   }
 }
 
-// ===== iOS: 投資ボタンの連打ズーム対策 =====
+
 function enableInvestFastTap(areaSelector) {
   const area = document.querySelector(areaSelector);
   if (!area) return;
@@ -2660,9 +2760,9 @@ function skipInvest() {
   investFromStop = false;
 }
 
-// ===== 途中回転率 =====
 function showMidCheck() {
-  if (!(confirmedInvestYen > 0 || confirmedOwnedBalls > 0)) {
+  const playInputs = getPlayInputsFromLog();
+  if (!(confirmedInvestYen > 0 || confirmedOwnedBalls > 0 || playInputs.investK > 0 || playInputs.ownedBalls > 0)) {
     alert("投資額または持ち玉使用を追加してください");
     scrollToInvestCard();
     return;
@@ -2775,7 +2875,7 @@ function getMidCheckCurrentCounter() {
 
 function promptMidCheckCounter() {
   const v = prompt(
-    `現在のデータカウンター回転数を入力してください\n（開始: ${nextStartCounter} 以上）`
+    `現在のデータカウンター回転数を入力してください\n（開始 ${nextStartCounter} 以上）`
   );
 
   if (v === null) return null;
@@ -2815,7 +2915,10 @@ function calcMidRotationRateB(tempEndBalls) {
   const spinCount = getMidCheckSpinCount(counter);
   if (spinCount <= 0) return null;
 
-  const investBalls = (confirmedInvestYen / 1000) * 250 + confirmedOwnedBalls;
+  const playInputs = getPlayInputsFromLog();
+  const investK = Number(playInputs.investK) || (confirmedInvestYen / 1000);
+  const ownedBallsUsed = Number(playInputs.ownedBalls) || confirmedOwnedBalls;
+  const investBalls = investK * 250 + ownedBallsUsed;
   const payout = getTotalPayoutFromLog();
 
   const consumedBalls = investBalls + payout - tempEndBalls;
@@ -2891,7 +2994,6 @@ function closeMidCheck() {
   setText("midMeterBorderValue", "—");
 }
 
-// ===== 初期化 =====
 function init() {
   initMachineSelect();
   checkDailyLogRollover();
@@ -2927,7 +3029,10 @@ function init() {
   $("midBallsConfirm")?.addEventListener("click", confirmMidCheck);
 
   $("calcBtn")?.addEventListener("click", confirmInvest);
-  $("finalCalcBtn")?.addEventListener("click", calc);
+  $("finalCalcBtn")?.addEventListener("click", () => {
+    flashFinalCalcButton();
+    calc();
+  });
   $("undoInvest")?.addEventListener("click", undoLastInvest);
 
   $("resetBtn")?.addEventListener("click", resetSelectedMachineTotals);
@@ -3079,27 +3184,32 @@ function init() {
   });
 
   $("favoriteBtn")?.addEventListener("click", () => {
-  toggleFavoriteMachine(selectedMachine.id);
+    const favBtn = $("favoriteBtn");
+    toggleFavoriteMachine(selectedMachine.id);
 
-  const sel = $("machineSelect");
-  if (sel) {
-    const currentId = selectedMachine.id;
-    sel.innerHTML = "";
+    const sel = $("machineSelect");
+    if (sel) {
+      const currentId = selectedMachine.id;
+      sel.innerHTML = "";
 
-    for (const m of getSortedMachines()) {
-      const opt = document.createElement("option");
-      opt.value = m.id;
-      opt.textContent = isFavoriteMachine(m.id) ? `★ ${m.name}` : m.name;
-      sel.appendChild(opt);
+      for (const m of getSortedMachines()) {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.textContent = isFavoriteMachine(m.id) ? `★ ${m.name}` : m.name;
+        sel.appendChild(opt);
+      }
+
+      sel.value = currentId;
     }
 
-    sel.value = currentId;
-  }
-
-  renderFavoriteButton();
-  renderMachinePickerList();
-  updateRushEndAdjustUI();
-});
+    renderFavoriteButton();
+    favBtn?.classList.remove("is-sparkling");
+    void favBtn?.offsetWidth;
+    favBtn?.classList.add("is-sparkling");
+    window.setTimeout(() => favBtn?.classList.remove("is-sparkling"), 560);
+    renderMachinePickerList();
+    updateRushEndAdjustUI();
+  });
 
   setInterval(checkDailyLogRollover, 60 * 60 * 1000);
   document.addEventListener("visibilitychange", () => {
@@ -3108,3 +3218,4 @@ function init() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+
