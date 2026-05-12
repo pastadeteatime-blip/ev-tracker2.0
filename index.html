@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>期待値トラッカー</title>
+  <title>&#26399;&#24453;&#20516;&#12488;&#12521;&#12483;&#12459;&#12540;</title>
 
   <link rel="stylesheet" href="style.css" />
 
@@ -14,15 +14,15 @@
 
   <!-- iOS Web App -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="期待値トラッカー">
+  <meta name="apple-mobile-web-app-title" content="&#26399;&#24453;&#20516;&#12488;&#12521;&#12483;&#12459;&#12540;">
 </head>
 
 <body>
-  <!-- ロゴ -->
-  <h1 class="logo" aria-label="期待値トラッカー">
+  <!-- logo -->
+  <h1 class="logo" aria-label="&#26399;&#24453;&#20516;&#12488;&#12521;&#12483;&#12459;&#12540;">
     <img
       src="./assets/logo-ev-tracker.png"
-      alt="期待値トラッカー"
+      alt="&#26399;&#24453;&#20516;&#12488;&#12521;&#12483;&#12459;&#12540;"
       class="app-logo"
       decoding="async"
       loading="eager"
@@ -32,109 +32,105 @@
 
   <main class="container">
 
-    <!-- 機種選択 + 機種情報 -->
-    <section class="card" aria-label="機種情報">
+    <!-- machine selection and store info -->
+    <section class="card" aria-label="&#27231;&#31278;&#24773;&#22577;">
       <div class="machine-row">
         <label class="machine-label">
-          機種
+          &#27231;&#31278;
           <button type="button" id="machinePickerOpen" class="machine-picker-open">
-            <span id="selectedMachineName">機種を選択</span>
-            <span class="machine-picker-open__hint">検索</span>
+            <span id="selectedMachineName">&#27231;&#31278;&#12434;&#36984;&#25246;</span>
+            <span class="machine-picker-open__hint">&#26908;&#32034;</span>
           </button>
           <select id="machineSelect" class="machine-select-native" aria-hidden="true" tabindex="-1"></select>
-          <button type="button" id="favoriteBtn" class="chip neutral">☆ お気に入り</button>
+          <button type="button" id="favoriteBtn" class="chip neutral">&#9734; &#12362;&#27671;&#12395;&#20837;&#12426;</button>
           <p id="infoBorder" class="equivalent-border machine-fade">
-  繝懊・繝繝ｼ・壺・蝗・k
+  &#12508;&#12540;&#12480;&#12540;&#65306;&#8212; &#22238;/k
 </p>
         </label>
-<div class="exchange-row">
-
-  <label class="exchange-label">
-    交換率（100円）
-    <select id="exchangeSelect">
-      <option value="25">25玉（等価）</option>
-      <option value="28" selected>28玉</option>
-      <option value="30">30玉</option>
-      <option value="33">33玉</option>
-    </select>
-  </label>
-  
-  <p class="equivalent-border machine-fade is-hidden">
-  ボーダー：— 回/k
-</p>
-
-</div>
-
         <div class="store-row">
           <label>
-            店を選択
+            &#24215;&#12434;&#36984;&#25246;
             <button type="button" id="storePickerOpen" class="store-picker-open">
-              <span id="selectedStoreName">店舗を選択</span>
-              <span class="store-picker-open__hint">検索</span>
+              <span id="selectedStoreName">&#24215;&#33303;&#12434;&#36984;&#25246;</span>
+              <span class="store-picker-open__hint">&#26908;&#32034;</span>
             </button>
             <select id="storeSelect"></select>
           </label>
-          <button type="button" id="storeAddBtn" class="chip neutral">店舗を追加</button>
-          <button type="button" id="storeSaveBtn" class="chip state is-hidden">保存</button>
-          <button type="button" id="storeCancelBtn" class="chip sub is-hidden">戻る</button>
+          <button type="button" id="storeAddBtn" class="chip neutral">&#24215;&#33303;&#12434;&#36861;&#21152;</button>
+          <button type="button" id="storeSaveBtn" class="chip state is-hidden">&#20445;&#23384;</button>
+          <button type="button" id="storeCancelBtn" class="chip sub is-hidden">&#25147;&#12427;</button>
           <label>
-            店
-            <input type="text" id="storeName" list="storeList" placeholder="店名を入力" />
-            <datalist id="storeList"></datalist>
+            &#24215;
+            <input type="text" id="storeName" list="storeList" placeholder="&#24215;&#21517;&#12434;&#20837;&#21147;" />
           </label>
+          <div class="exchange-row">
+            <label class="exchange-label">
+              &#20132;&#25563;&#29575;&#65288;100&#20870;&#12354;&#12383;&#12426;&#65289;
+              <select id="exchangeSelect">
+                <option value="25">25&#29577;&#65288;&#31561;&#20385;&#65289;</option>
+                <option value="28" selected>28&#29577;</option>
+                <option value="30">30&#29577;</option>
+                <option value="33">33&#29577;</option>
+              </select>
+            </label>
+
+            <p class="equivalent-border machine-fade is-hidden">
+              &#12508;&#12540;&#12480;&#12540;&#65306;&#8212; &#22238;/k
+            </p>
+          </div>
           <div class="owned-summary">
-            <span id="ownedKeyLabel">店・レート未設定</span>
-            <strong id="ownedBalance">持ち玉：0玉</strong>
+            <span id="ownedKeyLabel">&#24215;&#12398;&#12524;&#12540;&#12488;&#26410;&#35373;&#23450;</span>
+            <strong id="ownedBalance">&#25345;&#12385;&#29577;&#65306;0&#29577;</strong>
             <div class="owned-edit">
-              <input type="number" id="ownedBalanceInput" inputmode="numeric" min="0" step="1" placeholder="持ち玉を入力" />
-              <button type="button" id="ownedBalanceSaveBtn" class="chip neutral">更新</button>
+              <input type="number" id="ownedBalanceInput" inputmode="numeric" min="0" step="1" placeholder="&#25345;&#12385;&#29577;&#12434;&#20837;&#21147;" />
+              <button type="button" id="ownedBalanceSaveBtn" class="chip neutral">&#26356;&#26032;</button>
             </div>
           </div>
         </div>
         
         <div class="rate-row">
-          <p id="infoJackpot" class="machine-fade">図柄揃い確率：—</p>
-          <p id="infoRush" class="machine-fade">ラッシュ突入率：—</p>
+          <p id="infoJackpot" class="machine-fade">&#22259;&#26564;&#24403;&#12383;&#12426;&#30906;&#29575;&#65306;&#8212;</p>
+          <p id="infoRush" class="machine-fade">&#12521;&#12483;&#12471;&#12517;&#31361;&#20837;&#29575;&#65306;&#8212;</p>
         </div>
       </div>
     </section>
 
-    <!-- 回転ログ -->
+    <!-- &#22238;&#36578;&#12525;&#12464; -->
     <section class="card" id="logCard">
 
-      <!-- 右上ボタンのためのヘッダー -->
+      <!-- header controls -->
       <div class="card-header">
-        <h2 class="section-title">回転ログ</h2>
+        <h2 class="section-title">&#22238;&#36578;&#12525;&#12464;</h2>
         <button id="btnMidCheck" type="button" class="chip chip-mid-check chip-midcheck-mini">
-          回転率チェック
+          &#22238;&#36578;&#29575;&#12481;&#12455;&#12483;&#12463;
         </button>
       </div>
 
       <div class="log-input">
         <label>
-          データカウンター回転数
+          &#12487;&#12540;&#12479;&#12459;&#12454;&#12531;&#12479;&#12540;&#22238;&#36578;&#25968;
           <input type="number" id="counterNow" inputmode="numeric" />
         </label>
 
-        <div class="log-actions" role="group" aria-label="区切りの登録">
-          <!-- 通常時に見える -->
+        <div class="log-actions" role="group" aria-label="&#22238;&#36578;&#12525;&#12464;&#12398;&#25805;&#20316;">
+          <!-- main log buttons -->
           <div class="log-actions-main" id="logActionsMain">
-            <button type="button" class="chip state" id="btnStart">開始</button>
-            <button type="button" class="chip state" id="btnHit">当たり</button>
-            <button type="button" class="chip undo" id="btnUndo">戻す</button>
-            <button type="button" class="chip clear" id="btnStop">ヤメ</button>
+            <button type="button" class="chip state" id="btnStart">&#38283;&#22987;</button>
+            <button type="button" class="chip state" id="btnHit">&#24403;&#12383;&#12426;</button>
+            <button type="button" class="chip undo" id="btnUndo">&#25147;&#12377;</button>
+            <button type="button" class="chip clear" id="btnStop">&#12516;&#12513;</button>
           </div>
 
-          <!-- 当たり後に見える -->
+          <!-- buttons shown after hit -->
           <div class="log-actions-after is-hidden" id="logActionsAfter">
-  <button type="button" class="chip state" id="btnCharge">チャージ</button>
-  <button type="button" class="chip state" id="btnTan">単発</button>
-  <button type="button" class="chip state" id="btnRushEnd">RUSH終了</button>
-  <button type="button" class="chip state" id="btnLtEnd">LT終了</button>
-  <button type="button" class="chip undo" id="btnUndo2">戻す</button>
+  <button type="button" class="chip state" id="btnCharge">&#12481;&#12515;&#12540;&#12472;</button>
+  <button type="button" class="chip state" id="btnTan">&#21336;&#30330;</button>
+  <button type="button" class="chip state" id="btnRushEnd">RUSH&#32066;&#20102;</button>
+  <button type="button" class="chip state" id="btnLtEnd">LT&#32066;&#20102;</button>
+  <button type="button" class="chip undo" id="btnUndo2">&#25147;&#12377;</button>
   <div id="rushEndAdjustRow" class="is-hidden">
     <label>
-      RUSH終了 上乗せ
+      RUSH&#32066;&#20102;&#24460;&#12398;&#36861;&#21152;&#22238;&#36578;
       <select id="rushEndAdjust">
         <option value="0">+0</option>
         <option value="1">+1</option>
@@ -146,92 +142,92 @@
   </div>
           </div>
 
-          <!-- 表記出玉 入力パネル（RUSH/LTの時だけ出す） -->
+          <!-- payout input panel shown for RUSH/LT -->
           <div id="payoutPanel" class="is-hidden">
             <label>
-              リザルト表記出玉
+              &#12522;&#12470;&#12523;&#12488;&#34920;&#35352;&#20986;&#29577;
               <input type="number" id="payoutNow" inputmode="numeric" />
             </label>
-            <button type="button" class="chip state" id="btnPayoutConfirm">表記出玉を確定</button>
+            <button type="button" class="chip state" id="btnPayoutConfirm">&#34920;&#35352;&#20986;&#29577;&#12434;&#30906;&#23450;</button>
           </div>
 
-          <!-- 持ち玉 入力パネル（ヤメの時だけ出す） -->
+          <!-- &#25345;&#12385;&#29577;&#20837;&#21147;&#12497;&#12493;&#12523;&#65288;&#12516;&#12513;&#12398;&#26178;&#12384;&#12369;&#20986;&#12377;&#65289; -->
           <div id="endBallsPanel" class="is-hidden">
             <label>
-              ヤメ時の持ち玉
+              &#12516;&#12513;&#26178;&#12398;&#25345;&#12385;&#29577;
               <input type="number" id="endBallsNow" inputmode="numeric" />
             </label>
-            <button type="button" class="chip state" id="btnEndBallsConfirm">持ち玉を確定</button>
+            <button type="button" class="chip state" id="btnEndBallsConfirm">&#25345;&#12385;&#29577;&#12434;&#30906;&#23450;</button>
           </div>
         </div>
 
         <p class="log-meta">
-          初当たり回数 /通常回転数：<span id="hitOverTotal">0 / 0</span>
+          &#21021;&#24403;&#12383;&#12426;&#22238;&#25968; / &#36890;&#24120;&#22238;&#36578;&#25968;&#65306;<span id="hitOverTotal">0 / 0</span>
         </p>
       </div>
 
-      <div class="log-list" id="logList" aria-label="ログ一覧"></div>
+      <div class="log-list" id="logList" aria-label="&#12525;&#12464;&#19968;&#35239;"></div>
 
       <button type="button" id="resetLogBtn" class="chip clear log-reset-btn">
-        当日のログをリセット
+        &#24403;&#26085;&#12398;&#12525;&#12464;&#12434;&#12522;&#12475;&#12483;&#12488;
       </button>
     </section>
 
-    <!-- 投資（仮確定） -->
+    <!-- &#25237;&#36039;&#65288;&#20206;&#30906;&#23450;&#65289; -->
     <section class="card" id="investCard">
-      <div class="play-source-tabs" role="group" aria-label="プレイ種別">
-        <button type="button" class="chip state is-active" id="playCashBtn">現金</button>
-        <button type="button" class="chip neutral" id="playOwnedBtn">持ち玉</button>
+      <div class="play-source-tabs" role="group" aria-label="&#12503;&#12524;&#12452;&#31278;&#21029;">
+        <button type="button" class="chip state is-active" id="playCashBtn">&#29694;&#37329;</button>
+        <button type="button" class="chip neutral" id="playOwnedBtn">&#25345;&#12385;&#29577;</button>
       </div>
 
       <label>
-        投資額（今回追加分）
+        &#25237;&#36039;&#38989;&#65288;&#20170;&#22238;&#36861;&#21152;&#20998;&#65289;
         <input type="number" id="investYen" inputmode="numeric" min="0" step="500"/>
       </label>
 
       <label id="ownedUseLabel" class="is-hidden">
-        持ち玉使用（玉）
+        &#25345;&#12385;&#29577;&#20351;&#29992;&#65288;&#29577;&#65289;
         <input type="number" id="ownedUseBalls" inputmode="numeric" min="0" step="125"/>
       </label>
 
-      <p id="investConfirmed" class="invest-confirmed">仮確定投資：0 円</p>
-      <p id="ownedConfirmed" class="invest-confirmed">確定持ち玉使用：0玉</p>
+      <p id="investConfirmed" class="invest-confirmed">&#29694;&#37329;&#25237;&#36039;&#65306;0 &#20870;</p>
+      <p id="ownedConfirmed" class="invest-confirmed">&#25345;&#12385;&#29577;&#20351;&#29992;&#65306;0&#29577;</p>
 
-      <div class="invest-buttons" role="group" aria-label="投資額の操作">
+      <div class="invest-buttons" role="group" aria-label="&#25237;&#36039;&#38989;&#12398;&#25805;&#20316;">
         <div class="invest-row">
-          <button type="button" class="chip" id="add500">+500円</button>
-          <button type="button" class="chip" id="add1000">+1000円</button>
-          <button type="button" class="chip" id="add5000">+5000円</button>
+          <button type="button" class="chip" id="add500">+500&#20870;</button>
+          <button type="button" class="chip" id="add1000">+1000&#20870;</button>
+          <button type="button" class="chip" id="add5000">+5000&#20870;</button>
         </div>
 
         <div class="invest-row">
-          <button type="button" class="chip sub" id="sub500">−500円</button>
-          <button type="button" class="chip neutral" id="skipInvest">追加無し</button>
-          <button type="button" class="chip clear" id="clearInvest">クリア</button>
-          <button class="chip undo" id="undoInvest">戻す</button>
+          <button type="button" class="chip sub" id="sub500">-500&#20870;</button>
+          <button type="button" class="chip neutral" id="skipInvest">&#36861;&#21152;&#28961;&#12375;</button>
+          <button type="button" class="chip clear" id="clearInvest">&#12463;&#12522;&#12450;</button>
+          <button class="chip undo" id="undoInvest">&#25147;&#12377;</button>
         </div>
       </div>
 
-      <button type="button" id="calcBtn">投資額の追加</button>
-      <button type="button" id="ownedUseBtn" class="is-hidden">持ち玉を投入</button>
+      <button type="button" id="calcBtn">&#29694;&#37329;&#12434;&#25237;&#20837;</button>
+      <button type="button" id="ownedUseBtn" class="is-hidden">&#25345;&#12385;&#29577;&#12434;&#25237;&#20837;</button>
 
       <p id="result" aria-live="polite"></p>
     </section>
 
-    <!-- 期待値計算（別カード） -->
+    <!-- expectation calculation -->
     <section class="card" id="finalCalcCard">
-      <button type="button" id="finalCalcBtn">期待値計算</button>
+      <button type="button" id="finalCalcBtn">&#26399;&#24453;&#20516;&#35336;&#31639;</button>
 
       <p id="finalResult" class="final-result" aria-live="polite"></p>
 
-      <div class="rate-meter rate-meter--compact is-hidden" id="finalRateMeter" aria-label="今回の回転率メーター">
+      <div class="rate-meter rate-meter--compact is-hidden" id="finalRateMeter" aria-label="&#20170;&#22238;&#12398;&#22238;&#36578;&#29575;&#12513;&#12540;&#12479;&#12540;">
         <div class="rate-meter__scale">
-          <span id="finalMeterMin" class="rate-meter__tick">—</span>
+          <span id="finalMeterMin" class="rate-meter__tick">&#8212;</span>
           <span class="rate-meter__tick rate-meter__center">
-            <span id="finalMeterBorderValue" class="rate-meter__border-value">—</span>
-            <span>ボーダー</span>
+            <span id="finalMeterBorderValue" class="rate-meter__border-value">&#8212;</span>
+            <span>&#12508;&#12540;&#12480;&#12540;</span>
           </span>
-          <span id="finalMeterMax" class="rate-meter__tick">—</span>
+          <span id="finalMeterMax" class="rate-meter__tick">&#8212;</span>
         </div>
 
         <div class="rate-meter__bar">
@@ -240,40 +236,40 @@
         </div>
 
         <div class="rate-meter__labels">
-          <span>低い</span>
-          <span>高い</span>
+          <span>&#20302;&#12356;</span>
+          <span>&#39640;&#12356;</span>
         </div>
       </div>
     </section>
 
-    <!-- 累計 -->
+    <!-- &#32047;&#35336; -->
     <section class="card" id="totalCard">
-      <h2 class="section-title">機種別累計</h2>
+      <h2 class="section-title">&#27231;&#31278;&#21029;&#32047;&#35336;</h2>
       <div id="machineTotalCards" class="machine-total-cards"></div>
-      <p id="totalSpin">初当たり確率：0</p>
-      <p id="totalInvest">累計投資：0 円</p>
-      <p id="avgRate">累計回転率：0 回/k</p>
-      <p id="total">累積期待値：0 玉</p>
+      <p id="totalSpin">&#21021;&#24403;&#12383;&#12426;&#30906;&#29575;&#65306;</p>
+      <p id="totalInvest">&#32047;&#35336;&#25237;&#36039;&#65306;0 &#20870;</p>
+      <p id="avgRate">&#32047;&#35336;&#22238;&#36578;&#29575;&#65306;0 &#22238;/k</p>
+      <p id="total">&#32047;&#31309;&#26399;&#24453;&#20516;&#65306;0 &#29577;</p>
 
       <div class="goal">
         <p class="goal-title"></p>
         <progress id="goalBar" value="0" max="1000000"></progress>
-        <p id="percent">達成率：0.00 %</p>
+        <p id="percent">&#36948;&#25104;&#29575;&#65306;0.0 %</p>
       </div>
 
-      <p class="note">※ボーダー表示は28交換、期待値計算は等価換算です</p>
-      <button type="button" id="resetBtn">リセット</button>
+      <p class="note">&#8251;&#36890;&#24120;&#12508;&#12540;&#12480;&#12540;&#12399;&#36984;&#25246;&#20132;&#25563;&#29575;&#12289;&#30495;&#12508;&#12540;&#12480;&#12540;&#12399;&#25345;&#12385;&#29577;&#27604;&#29575;&#12434;&#21152;&#21619;&#12289;&#26399;&#24453;&#20516;&#12399;&#31561;&#20385;&#25563;&#31639;&#12391;&#12377;</p>
+      <button type="button" id="resetBtn">&#12522;&#12475;&#12483;&#12488;</button>
     </section>
 
   </main>
 
-  <!-- scripts（先に machines → app の順） -->
-  <nav class="bottom-tabs" aria-label="実績表示切り替え">
+  <!-- scripts: machines -> app -->
+  <nav class="bottom-tabs" aria-label="&#23455;&#32318;&#34920;&#31034;&#20999;&#12426;&#26367;&#12360;">
     <button type="button" id="totalTabAll" class="bottom-tab">
-      全機種
+      &#20840;&#27231;&#31278;
     </button>
     <button type="button" id="totalTabSelected" class="bottom-tab is-active">
-      選択機種
+      &#36984;&#25246;&#27231;&#31278;
     </button>
   </nav>
 
@@ -281,25 +277,25 @@
   <section
     id="machinePickerModal"
     class="machine-picker-modal is-hidden"
-    aria-label="機種検索"
+    aria-label="&#27231;&#31278;&#26908;&#32034;"
     role="dialog"
     aria-modal="true"
   >
     <div class="machine-picker-header">
-      <h2>機種を選択</h2>
-      <button type="button" id="machinePickerClose" class="machine-picker-close" aria-label="閉じる">×</button>
+      <h2>&#27231;&#31278;&#12434;&#36984;&#25246;</h2>
+      <button type="button" id="machinePickerClose" class="machine-picker-close" aria-label="&#38281;&#12376;&#12427;">&times;</button>
     </div>
     <input
       type="search"
       id="machineSearchInput"
       class="machine-search-input"
-      placeholder="機種名・メーカー・スペックで検索"
+      placeholder="&#27231;&#31278;&#21517;&#12539;&#12513;&#12540;&#12459;&#12540;&#12539;&#12473;&#12506;&#12483;&#12463;&#12391;&#26908;&#32034;"
       autocomplete="off"
     />
-    <div class="machine-picker-tabs" role="tablist" aria-label="機種カテゴリ">
-      <button type="button" class="machine-picker-tab is-active" data-machine-filter="all">すべて</button>
-      <button type="button" class="machine-picker-tab" data-machine-filter="favorite">お気に入り</button>
-      <button type="button" class="machine-picker-tab" data-machine-filter="recent">最近</button>
+    <div class="machine-picker-tabs" role="tablist" aria-label="&#27231;&#31278;&#12459;&#12486;&#12468;&#12522;">
+      <button type="button" class="machine-picker-tab is-active" data-machine-filter="all">&#12377;&#12409;&#12390;</button>
+      <button type="button" class="machine-picker-tab" data-machine-filter="favorite">&#12362;&#27671;&#12395;&#20837;&#12426;</button>
+      <button type="button" class="machine-picker-tab" data-machine-filter="recent">&#26368;&#36817;</button>
     </div>
     <div id="machinePickerList" class="machine-picker-list"></div>
   </section>
@@ -308,19 +304,19 @@
   <section
     id="storePickerModal"
     class="store-picker-modal is-hidden"
-    aria-label="店舗検索"
+    aria-label="&#24215;&#33303;&#26908;&#32034;"
     role="dialog"
     aria-modal="true"
   >
     <div class="store-picker-header">
-      <h2>店舗を選択</h2>
-      <button type="button" id="storePickerClose" class="store-picker-close" aria-label="閉じる">×</button>
+      <h2>&#24215;&#33303;&#12434;&#36984;&#25246;</h2>
+      <button type="button" id="storePickerClose" class="store-picker-close" aria-label="&#38281;&#12376;&#12427;">&times;</button>
     </div>
     <input
       type="search"
       id="storeSearchInput"
       class="store-search-input"
-      placeholder="店舗名で検索"
+      placeholder="&#24215;&#33303;&#21517;&#12391;&#26908;&#32034;"
       autocomplete="off"
     />
     <div id="storePickerList" class="store-picker-list"></div>
@@ -329,21 +325,21 @@
   <script src="./machines.js"></script>
   <script src="./app.js"></script>
 
-  <!-- 途中経過：背景オーバーレイ（外タップで閉じる） -->
+  <!-- mid-check overlay -->
   <div id="midOverlay" class="mid-overlay is-hidden" aria-hidden="true"></div>
 
-  <!-- 途中経過：モーダル -->
+  <!-- mid-check modal -->
   <div id="midCheckCard" class="card mid-modal is-hidden" aria-label="途中経過">
-    <h3 class="section-title">途中経過</h3>
+    <h3 class="section-title">&#36884;&#20013;&#32076;&#36942;</h3>
 
-    <div class="rate-meter" id="midRateMeter" aria-label="回転率メーター">
+    <div class="rate-meter" id="midRateMeter" aria-label="&#22238;&#36578;&#29575;&#12513;&#12540;&#12479;&#12540;">
       <div class="rate-meter__scale">
-        <span id="midMeterMin" class="rate-meter__tick">—</span>
+        <span id="midMeterMin" class="rate-meter__tick">&#8212;</span>
         <span id="midMeterCenter" class="rate-meter__tick rate-meter__center">
-          <span id="midMeterBorderValue" class="rate-meter__border-value">—</span>
-          <span>ボーダー</span>
+          <span id="midMeterBorderValue" class="rate-meter__border-value">&#8212;</span>
+          <span>&#12508;&#12540;&#12480;&#12540;</span>
         </span>
-        <span id="midMeterMax" class="rate-meter__tick">—</span>
+        <span id="midMeterMax" class="rate-meter__tick">&#8212;</span>
       </div>
 
       <div class="rate-meter__bar">
@@ -352,37 +348,38 @@
       </div>
 
       <div class="rate-meter__labels">
-        <span>低い</span>
-        <span>高い</span>
+        <span>&#20302;&#12356;</span>
+        <span>&#39640;&#12356;</span>
       </div>
     </div>
 
 <label class="mid-balls-input">
-  現在の持ち玉
+  &#29694;&#22312;&#12398;&#25345;&#12385;&#29577;
   <input type="number" id="midBallsNow" inputmode="numeric" />
 </label>
-<button type="button" class="chip state" id="midBallsConfirm">計算</button>
+<button type="button" class="chip state" id="midBallsConfirm">&#35336;&#31639;</button>
 
     <div class="kv-list">
       <div class="kv-row">
-        <span class="kv-key">回転数</span>
-        <span class="kv-val" id="midSpinVal">—</span>
+        <span class="kv-key">&#22238;&#36578;&#25968;</span>
+        <span class="kv-val" id="midSpinVal">&#8212;</span>
       </div>
 
       <div class="kv-row">
-        <span class="kv-key">現在の回転率</span>
-        <span class="kv-val" id="midRateVal">—</span>
+        <span class="kv-key">&#29694;&#22312;&#12398;&#22238;&#36578;&#29575;</span>
+        <span class="kv-val" id="midRateVal">&#8212;</span>
       </div>
 
       <div class="kv-row">
-        <span class="kv-key">差</span>
-        <span class="kv-val" id="midDiffVal">—</span>
+        <span class="kv-key">&#24046;</span>
+        <span class="kv-val" id="midDiffVal">&#8212;</span>
       </div>
     </div>
 
-    <!-- ✅閉じるボタン復活 -->
-    <button id="midCheckClose" type="button" class="chip clear">閉じる</button>
+    <!-- close button -->
+    <button id="midCheckClose" type="button" class="chip clear">&#38281;&#12376;&#12427;</button>
   </div>
 
 </body>
 </html>
+
