@@ -40,21 +40,17 @@
 
 ## サポートURL
 
-未定。候補は以下。
+GitHub Pages公開後:
 
-- GitHub Pagesで公開した `support.html`
-- Googleフォームの問い合わせURL
+- `https://pastadeteatime-blip.github.io/ev-tracker/support.html`
 
 Googleフォームが重い場合は後回しでよい。App Store提出前までに、ユーザーが問い合わせできる公開URLを1つ用意する。
 
 ## プライバシーポリシーURL
 
-未定。`privacy.html` を公開できるURLに配置して設定する。
-
-GitHub Pagesを使う場合の想定URL:
+GitHub Pages公開後:
 
 - `https://pastadeteatime-blip.github.io/ev-tracker/privacy.html`
-- `https://pastadeteatime-blip.github.io/ev-tracker/support.html`
 
 ## App Reviewメモ案
 

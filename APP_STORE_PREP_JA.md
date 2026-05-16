@@ -65,6 +65,8 @@
 - プライバシーポリシーURL
 - サポートページ: `support.html`を追加済み
 - プライバシーポリシーページ: `privacy.html`を追加済み
+- 公開予定サポートURL: `https://pastadeteatime-blip.github.io/ev-tracker/support.html`
+- 公開予定プライバシーポリシーURL: `https://pastadeteatime-blip.github.io/ev-tracker/privacy.html`
 - App Storeスクリーンショット
 - アプリ説明文
 - キーワード
