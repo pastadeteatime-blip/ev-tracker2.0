@@ -1,0 +1,19 @@
+{
+  "name": "ev-tracker",
+  "version": "1.1.0",
+  "private": true,
+  "description": "期待値トラッカー",
+  "scripts": {
+    "build": "node scripts/build-web.mjs",
+    "cap:sync": "npm run build && npx cap sync",
+    "cap:add:ios": "npm run build && npx cap add ios",
+    "cap:open:ios": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0"
+  }
+}
