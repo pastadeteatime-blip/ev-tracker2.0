@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>&#26399;&#24453;&#20516;&#12488;&#12521;&#12483;&#12459;&#12540;</title>
 
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=28" />
   <link rel="manifest" href="./manifest.webmanifest">
 
   <!-- iOS / Web App Icons -->
-  <link rel="apple-touch-icon" sizes="180x180" href="./assets/icon-180.png?v=9">
-  <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png?v=9">
-  <link rel="icon" type="image/png" sizes="512x512" href="./assets/icon-512.png?v=9">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/icon-180.png?v=28">
+  <link rel="icon" type="image/png" sizes="192x192" href="./assets/icon-192.png?v=28">
+  <link rel="icon" type="image/png" sizes="512x512" href="./assets/icon-512.png?v=28">
 
   <!-- iOS Web App -->
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -51,16 +51,22 @@
 </p>
         </label>
         <div class="store-row">
+          <div class="store-heading">
+            <span>&#24215;&#33303;</span>
+            <div class="store-heading-actions">
+              <button type="button" id="storeChangeBtn" class="chip neutral is-hidden">&#24215;&#33303;&#12434;&#22793;&#26356;</button>
+              <button type="button" id="storeAddBtn" class="chip neutral">&#26032;&#35215;&#30331;&#37682;</button>
+            </div>
+          </div>
           <label>
-            &#24215;&#12434;&#36984;&#25246;
+            <span class="visually-hidden">&#36984;&#25246;&#12373;&#12428;&#12383;&#24215;&#33303;</span>
             <button type="button" id="storePickerOpen" class="store-picker-open">
               <span id="selectedStoreName">&#24215;&#33303;&#12434;&#36984;&#25246;</span>
               <span class="store-picker-open__hint">&#26908;&#32034;</span>
             </button>
             <select id="storeSelect"></select>
           </label>
-          <button type="button" id="storeAddBtn" class="chip neutral">&#24215;&#33303;&#12434;&#36861;&#21152;</button>
-          <button type="button" id="storeSaveBtn" class="chip state is-hidden">&#20445;&#23384;</button>
+          <button type="button" id="storeSaveBtn" class="chip state is-hidden">&#27770;&#23450;</button>
           <button type="button" id="storeCancelBtn" class="chip sub is-hidden">&#25147;&#12427;</button>
           <label>
             &#24215;
@@ -83,10 +89,11 @@
           </div>
           <div class="owned-summary">
             <span id="ownedKeyLabel">&#24215;&#12398;&#12524;&#12540;&#12488;&#26410;&#35373;&#23450;</span>
-            <strong id="ownedBalance">&#25345;&#12385;&#29577;&#65306;0&#29577;</strong>
+            <strong id="ownedBalance">&#36015;&#29577;&#65306;0&#29577;</strong>
+            <span id="currentHandBalls" class="current-hand-balls">&#25345;&#12385;&#29577;&#65306;----</span>
             <div class="owned-edit">
-              <input type="number" id="ownedBalanceInput" inputmode="numeric" min="0" step="1" placeholder="&#25345;&#12385;&#29577;&#12434;&#20837;&#21147;" />
-              <button type="button" id="ownedBalanceSaveBtn" class="chip neutral">&#26356;&#26032;</button>
+              <input type="number" id="ownedBalanceInput" inputmode="numeric" min="0" step="1" placeholder="&#36015;&#29577;&#12434;&#20837;&#21147;" />
+              <button type="button" id="ownedBalanceSaveBtn" class="chip neutral">&#36015;&#29577;&#12434;&#26356;&#26032;</button>
             </div>
           </div>
         </div>
@@ -180,7 +187,11 @@
     <section class="card" id="investCard">
       <div class="play-source-tabs" role="group" aria-label="&#12503;&#12524;&#12452;&#31278;&#21029;">
         <button type="button" class="chip state is-active" id="playCashBtn">&#29694;&#37329;</button>
-        <button type="button" class="chip neutral" id="playOwnedBtn">&#25345;&#12385;&#29577;</button>
+        <button type="button" class="chip neutral" id="playOwnedBtn">&#36015;&#29577;</button>
+        <div class="output-source-wrap">
+          <button type="button" class="chip neutral" id="playOutputBtn">&#25345;&#12385;&#29577;</button>
+          <span id="investHandBalance" class="invest-hand-balance">&#25345;&#12385;&#29577;&#65306;----</span>
+        </div>
       </div>
 
       <label>
@@ -189,12 +200,21 @@
       </label>
 
       <label id="ownedUseLabel" class="is-hidden">
-        &#25345;&#12385;&#29577;&#20351;&#29992;&#65288;&#29577;&#65289;
+        &#36015;&#29577;&#20351;&#29992;&#65288;&#29577;&#65289;
         <input type="number" id="ownedUseBalls" inputmode="numeric" min="0" step="125"/>
       </label>
 
+      <div id="outputUseLabel" class="output-use-row is-hidden">
+        <label>
+          &#29694;&#22312;&#12398;&#25345;&#12385;&#29577;
+          <input type="number" id="outputUseBalls" inputmode="numeric" min="0" step="1"/>
+        </label>
+        <button type="button" id="outputUseBtn" class="chip state">&#29694;&#22312;&#12398;&#25345;&#12385;&#29577;&#12363;&#12425;&#25237;&#36039;&#20998;&#12434;&#35336;&#31639;</button>
+      </div>
+
       <p id="investConfirmed" class="invest-confirmed">&#29694;&#37329;&#25237;&#36039;&#65306;0 &#20870;</p>
-      <p id="ownedConfirmed" class="invest-confirmed">&#25345;&#12385;&#29577;&#20351;&#29992;&#65306;0&#29577;</p>
+      <p id="ownedConfirmed" class="invest-confirmed">&#36015;&#29577;&#20351;&#29992;&#65306;0&#29577;</p>
+      <p id="outputConfirmed" class="invest-confirmed">&#25345;&#12385;&#29577;&#20351;&#29992;&#65306;0&#29577;</p>
 
       <div class="invest-buttons" role="group" aria-label="&#25237;&#36039;&#38989;&#12398;&#25805;&#20316;">
         <div class="invest-row">
@@ -212,7 +232,7 @@
       </div>
 
       <button type="button" id="calcBtn">&#29694;&#37329;&#12434;&#25237;&#20837;</button>
-      <button type="button" id="ownedUseBtn" class="is-hidden">&#25345;&#12385;&#29577;&#12434;&#25237;&#20837;</button>
+      <button type="button" id="ownedUseBtn" class="is-hidden">&#36015;&#29577;&#12434;&#25237;&#20837;</button>
 
       <p id="result" aria-live="polite"></p>
     </section>
@@ -349,9 +369,11 @@
     <div id="storePickerList" class="store-picker-list"></div>
   </section>
 
-  <script src="./affiliate-links.js"></script>
-  <script src="./machines.js"></script>
-  <script src="./app.js"></script>
+  <div id="appToast" class="app-toast is-hidden" role="status" aria-live="polite"></div>
+
+  <script src="./affiliate-links.js?v=28"></script>
+  <script src="./machines.js?v=28"></script>
+  <script src="./app.js?v=28"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
@@ -372,7 +394,7 @@
         <span id="midMeterMin" class="rate-meter__tick">&#8212;</span>
         <span id="midMeterCenter" class="rate-meter__tick rate-meter__center">
           <span id="midMeterBorderValue" class="rate-meter__border-value">&#8212;</span>
-          <span>&#12508;&#12540;&#12480;&#12540;</span>
+          <span>&#30495;&#12508;&#12540;&#12480;&#12540;</span>
         </span>
         <span id="midMeterMax" class="rate-meter__tick">&#8212;</span>
       </div>

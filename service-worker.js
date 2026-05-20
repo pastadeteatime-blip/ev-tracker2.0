@@ -1,4 +1,4 @@
-const CACHE_NAME = "ev-tracker-v4";
+const CACHE_NAME = "ev-tracker-v28";
 const APP_ASSETS = [
   "./",
   "./index.html",

@@ -18,6 +18,7 @@ const LS_OWNED_BALANCES = "evTracker_ownedBalances_v1";
 const LS_STORE_EXCHANGES = "evTracker_storeExchanges_v1";
 const LS_TOTAL_VIEW_MODE = "evTracker_totalViewMode_v1";
 const LS_DAILY_LOG_DATE = "evTracker_dailyLogDate_v1";
+const LS_DAILY_HAND_BALLS = "evTracker_dailyHandBalls_v1";
 const BACKUP_APP_ID = "ev-tracker";
 const BACKUP_SCHEMA_VERSION = 1;
 
@@ -39,7 +40,10 @@ let investYen = 0;
 let confirmedInvestYen = 0;
 let ownedUseBalls = 0;
 let confirmedOwnedBalls = 0;
+let outputUseBalls = 0;
+let confirmedOutputBalls = 0;
 let lastConfirmedOwnedBalls = 0;
+let playStartHandBalls = null;
 
 let totals = {
   totalExpectBalls: 0,
@@ -71,13 +75,17 @@ let nextStartCounter = 0;
 let payoutConfirmIndex = -1;
 let endBallsYame = null;
 let endBallsPending = false;
+let pendingHitHandData = null;
 let hasStarted = false;
 let investFromStop = false;
+let investmentsSincePlayBoundary = 0;
 let midCheckTempCounter = null;
 let isSwitchingMachine = false;
 let lastConfirmedInvestYen = 0;
+let lastConfirmedOutputBalls = 0;
 let lastMidCheckBalls = null;
 let rushEndAdjustIndex = -1;
+let toastTimer = null;
 
 function $(id) {
   return document.getElementById(id);
@@ -88,6 +96,22 @@ function fmtInt(n) {
 }
 function fmtRate2(n) {
   return Number.isFinite(n) ? n.toFixed(2) : "0.00";
+}
+
+function showToast(message) {
+  const toast = $("appToast");
+  if (!toast) return;
+
+  toast.textContent = message;
+  toast.classList.remove("is-hidden");
+  toast.classList.add("is-visible");
+
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.classList.remove("is-visible");
+    toast.classList.add("is-hidden");
+    toastTimer = null;
+  }, 1800);
 }
 function fmtRate1(n) {
   if (!Number.isFinite(n)) return "0.0";
@@ -104,6 +128,17 @@ function setSignedColor(el, val) {
 function setText(id, text) {
   const el = $(id);
   if (el) el.textContent = text;
+}
+
+function getDailyHandBalls() {
+  return Math.max(0, Math.floor(Number(localStorage.getItem(LS_DAILY_HAND_BALLS)) || 0));
+}
+
+function setDailyHandBalls(value) {
+  const balls = Math.max(0, Math.floor(Number(value) || 0));
+  localStorage.setItem(LS_DAILY_HAND_BALLS, String(balls));
+  renderOwnedBalance();
+  return balls;
 }
 
 function renderAffiliateLinks() {
@@ -320,7 +355,7 @@ function saveStoreExchange(name, exchange = selectedExchange) {
 function deleteStore(name) {
   const clean = normalizeStoreName(name);
   if (!clean) return;
-  if (!confirm(`「${clean}」を削除しますか？\n店舗の交換率と持ち玉データも削除されます。`)) return;
+  if (!confirm(`「${clean}」を削除しますか？\n店舗の交換率と貯玉データも削除されます。`)) return;
 
   saveStoreNames(getStoreNames().filter((item) => item !== clean));
 
@@ -451,7 +486,7 @@ function renderStorePickerList() {
     const meta = document.createElement("span");
     const exchange = getStoreExchange(name) || selectedExchange;
     const balance = getOwnedBalances()[getOwnedKey(name, exchange)] || 0;
-    meta.textContent = `${exchange}玉交換 / 持ち玉 ${fmtInt(balance)}玉`;
+    meta.textContent = `${exchange}玉交換 / 貯玉 ${fmtInt(balance)}玉`;
     selectBtn.appendChild(meta);
 
     const deleteBtn = document.createElement("button");
@@ -483,6 +518,7 @@ function renderStoreControls() {
   const names = getStoreNames();
   const row = document.querySelector(".store-row");
   row?.classList.toggle("is-adding-store", isAddingStore);
+  row?.classList.toggle("is-store-selected", Boolean(selectedStore) && !isAddingStore);
 
   const select = $("storeSelect");
   if (select) {
@@ -509,6 +545,11 @@ function renderStoreControls() {
   const input = $("storeName");
   if (input && !isAddingStore) input.value = "";
 
+  const changeBtn = $("storeChangeBtn");
+  if (changeBtn) {
+    changeBtn.classList.toggle("is-hidden", isAddingStore);
+    changeBtn.classList.toggle("is-reserved", !selectedStore && !isAddingStore);
+  }
   $("storeAddBtn")?.classList.toggle("is-hidden", isAddingStore);
   $("storeSaveBtn")?.classList.toggle("is-hidden", !isAddingStore);
   $("storeCancelBtn")?.classList.toggle("is-hidden", !isAddingStore);
@@ -539,7 +580,23 @@ function renderOwnedBalance() {
 
   const balance = $("ownedBalance");
   if (balance) {
-    balance.textContent = `持ち玉：${fmtInt(currentBalance)}玉`;
+    balance.textContent = `貯玉：${fmtInt(currentBalance)}玉`;
+  }
+
+  const currentHand = $("currentHandBalls");
+  if (currentHand) {
+    const handBalls = getDailyHandBalls();
+    currentHand.textContent = handBalls <= 0
+      ? "持ち玉：----"
+      : `持ち玉：${fmtInt(handBalls)}玉`;
+  }
+
+  const investHand = $("investHandBalance");
+  if (investHand) {
+    const handBalls = getDailyHandBalls();
+    investHand.textContent = handBalls <= 0
+      ? "持ち玉：----"
+      : `持ち玉：${fmtInt(handBalls)}玉`;
   }
 
   const input = $("ownedBalanceInput");
@@ -554,20 +611,21 @@ function renderOwnedBalance() {
 
 function saveOwnedBalanceInput() {
   if (!selectedStore) {
-    alert("\u5148\u306b\u5e97\u3092\u9078\u629e\u3057\u3066\u304f\u3060\u3055\u3044");
+    alert("先に店舗を選択してください");
     return;
   }
 
   const input = $("ownedBalanceInput");
   const value = Number(input?.value);
   if (!Number.isFinite(value) || value < 0) {
-    alert("\u6301\u3061\u7389\u30920\u4ee5\u4e0a\u306e\u6570\u5024\u3067\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044");
+    alert("貯玉を0以上の数値で入力してください");
     input?.focus();
     return;
   }
 
   setOwnedBalance(value);
   saveSession();
+  alert(`貯玉を${fmtInt(value)}玉に更新しました`);
 }
 
 function selectStore(name) {
@@ -629,7 +687,13 @@ function renderConfirmedInvest() {
 function renderConfirmedOwned() {
   const el = $("ownedConfirmed");
   if (!el) return;
-  el.textContent = `持ち玉使用：${fmtInt(confirmedOwnedBalls)}玉`;
+  el.textContent = `貯玉使用：${fmtInt(confirmedOwnedBalls)}玉`;
+}
+
+function renderConfirmedOutput() {
+  const el = $("outputConfirmed");
+  if (!el) return;
+  el.textContent = `持ち玉使用：${fmtInt(confirmedOutputBalls)}玉`;
 }
 
 function scrollToLogCard() {
@@ -680,15 +744,22 @@ function clearAllDailySessions() {
   for (const machine of MACHINES) {
     localStorage.removeItem(getSessionKey(machine.id));
   }
+  localStorage.removeItem(LS_DAILY_HAND_BALLS);
 }
 
 function clearCurrentDailyState() {
   setInvestYen(0, true);
   setOwnedUseBalls(0, true);
+  setOutputUseBalls(0, true);
   confirmedInvestYen = 0;
   confirmedOwnedBalls = 0;
+  confirmedOutputBalls = 0;
+  setDailyHandBalls(0);
+  playStartHandBalls = null;
+  investmentsSincePlayBoundary = 0;
   renderConfirmedInvest();
   renderConfirmedOwned();
+  renderConfirmedOutput();
 
   spinLog = [];
   pendingIndex = -1;
@@ -698,6 +769,7 @@ function clearCurrentDailyState() {
   nextStartCounter = 0;
   hasStarted = false;
   lastMidCheckBalls = null;
+  playStartHandBalls = null;
   lastConfirmedInvestYen = 0;
   lastConfirmedOwnedBalls = 0;
 
@@ -748,7 +820,7 @@ function saveSession() {
   try {
     const key = getSessionKey(selectedMachine.id);
     const sessionStore = getStoreNames().includes(selectedStore) ? selectedStore : "";
-    const data = {
+  const data = {
       spinLog,
       pendingIndex,
       nextStartCounter,
@@ -760,6 +832,10 @@ function saveSession() {
       confirmedInvestYen,
       ownedUseBalls,
       confirmedOwnedBalls,
+      outputUseBalls,
+      confirmedOutputBalls,
+      playStartHandBalls,
+      investmentsSincePlayBoundary,
       selectedStore: sessionStore,
       playSource,
       lastMidCheckBalls,
@@ -785,6 +861,7 @@ function loadSession() {
 
     endBallsYame = Number.isFinite(data.endBallsYame) ? data.endBallsYame : null;
     endBallsPending = !!data.endBallsPending;
+    pendingHitHandData = null;
     hasStarted = !!data.hasStarted;
 
     investYen = Number.isFinite(data.investYen) ? data.investYen : 0;
@@ -799,8 +876,22 @@ function loadSession() {
     confirmedOwnedBalls = Number.isFinite(data.confirmedOwnedBalls) ? data.confirmedOwnedBalls : 0;
     renderConfirmedOwned();
 
+    outputUseBalls = Number.isFinite(data.outputUseBalls) ? data.outputUseBalls : 0;
+    setOutputUseBalls(outputUseBalls, true);
+
+    confirmedOutputBalls = Number.isFinite(data.confirmedOutputBalls) ? data.confirmedOutputBalls : 0;
+    renderConfirmedOutput();
+
+    playStartHandBalls = Number.isFinite(data.playStartHandBalls)
+      ? Math.max(0, Math.floor(data.playStartHandBalls))
+      : null;
+
+    investmentsSincePlayBoundary = Number.isFinite(data.investmentsSincePlayBoundary)
+      ? Math.max(0, Math.floor(data.investmentsSincePlayBoundary))
+      : 0;
+
     selectedStore = typeof data.selectedStore === "string" ? data.selectedStore : selectedStore;
-    playSource = data.playSource === "owned" ? "owned" : "cash";
+    playSource = ["cash", "owned", "output"].includes(data.playSource) ? data.playSource : "cash";
     renderStoreControls();
     setPlaySource(playSource);
 
@@ -1048,12 +1139,17 @@ function resetSpinLog(skipSave = false) {
   payoutConfirmIndex = -1;
   endBallsYame = null;
   endBallsPending = false;
+  pendingHitHandData = null;
   lastMidCheckBalls = null;
+  playStartHandBalls = null;
+  investmentsSincePlayBoundary = 0;
 
   if ($("counterNow")) $("counterNow").value = "";
 
   $("payoutPanel")?.classList.add("is-hidden");
   if ($("payoutNow")) $("payoutNow").value = "";
+  $("hitHandPanel")?.classList.add("is-hidden");
+  if ($("hitHandNow")) $("hitHandNow").value = "";
 
   $("endBallsPanel")?.classList.add("is-hidden");
   if ($("endBallsNow")) $("endBallsNow").value = "";
@@ -1080,6 +1176,7 @@ function addStartEvent() {
     }
 
     nextStartCounter = Math.floor(now);
+    playStartHandBalls = getDailyHandBalls();
 
     spinLog.push({
       from: nextStartCounter,
@@ -1089,11 +1186,13 @@ function addStartEvent() {
       label: "開始",
       payout: null,
       payoutDisp: null,
+      startHandBalls: playStartHandBalls,
       startAt: nextStartCounter,
     });
 
     hasStarted = true;
     investFromStop = false;
+    investmentsSincePlayBoundary = 0;
     updateStartButton();
 
     if (input) input.value = "";
@@ -1140,6 +1239,46 @@ function addHitEvent() {
   const idx = spinLog.length - 1;
   const row = spinLog[idx];
   const add = now - row.from;
+  const hasInvestmentBeforeHit = investmentsSincePlayBoundary > 0;
+
+  finishHitEvent({ idx, now, add, hasInvestmentBeforeHit });
+}
+
+function confirmHitHand() {
+  if (!pendingHitHandData) return;
+
+  const currentHand = Math.floor(Number($("hitHandNow")?.value));
+  if (!Number.isFinite(currentHand) || currentHand < 0) {
+    alert("当たった時点の持ち玉（玉）を入力してください");
+    return;
+  }
+
+  const { idx, now, add, startHand, hasInvestmentBeforeHit } = pendingHitHandData;
+  const row = spinLog[idx];
+  if (!row) {
+    pendingHitHandData = null;
+    $("hitHandPanel")?.classList.add("is-hidden");
+    setCounterInputLocked(false);
+    saveSession();
+    return;
+  }
+
+  const alreadyUsed = Number(row.outputBalls) || 0;
+  const used = Math.max(0, startHand - currentHand - alreadyUsed);
+  if (used > 0) row.outputBalls = alreadyUsed + used;
+  setDailyHandBalls(currentHand);
+  playStartHandBalls = currentHand;
+  lastMidCheckBalls = currentHand;
+  pendingHitHandData = null;
+  $("hitHandPanel")?.classList.add("is-hidden");
+  if ($("hitHandNow")) $("hitHandNow").value = "";
+
+  finishHitEvent({ idx, now, add, hasInvestmentBeforeHit });
+}
+
+function finishHitEvent({ idx, now, add, hasInvestmentBeforeHit }) {
+  const row = spinLog[idx];
+  if (!row) return;
 
   row.to = now;
   row.add = add;
@@ -1150,14 +1289,19 @@ function addHitEvent() {
 
   pendingIndex = idx;
 
-  input.value = "";
+  const input = $("counterNow");
+  if (input) input.value = "";
 
   renderSpinLog();
   setLogMode("afterHit");
   setCounterInputLocked(true);
-  saveSession();
   investFromStop = false;
-  scrollToInvestCard();
+  investmentsSincePlayBoundary = 0;
+  saveSession();
+
+  if (!hasInvestmentBeforeHit) {
+    scrollToInvestCard();
+  }
 }
 
 function getRestartValue(type) {
@@ -1219,6 +1363,7 @@ function confirmHitOutcome(type) {
       payout: null,
       payoutDisp: null,
     });
+    investmentsSincePlayBoundary = 0;
 
     renderSpinLog();
     setLogMode("main");
@@ -1267,6 +1412,7 @@ function confirmPayout() {
     payout: null,
     payoutDisp: null,
   });
+  investmentsSincePlayBoundary = 0;
 
   renderSpinLog();
   setLogMode("main");
@@ -1285,21 +1431,34 @@ function confirmEndBalls() {
 
   endBallsYame = Math.floor(v);
   endBallsPending = false;
+  const hasInvestmentBeforeStop = investmentsSincePlayBoundary > 0;
 
   const last = spinLog[spinLog.length - 1];
   if (last && String(last.label).startsWith("ヤメ")) {
     last.label = "ヤメ";
     last.endBalls = endBallsYame;
+
+    const startHand = Number.isFinite(playStartHandBalls) ? playStartHandBalls : getDailyHandBalls();
+    const alreadyUsed = Number(last.outputBalls) || 0;
+    const used = Math.max(0, startHand - endBallsYame - alreadyUsed);
+    if (used > 0) last.outputBalls = alreadyUsed + used;
   }
 
   $("endBallsPanel")?.classList.add("is-hidden");
   if ($("endBallsNow")) $("endBallsNow").value = "";
 
   renderSpinLog();
+  renderOwnedBalance();
   setCounterInputLocked(false);
+  setDailyHandBalls(endBallsYame);
+  playStartHandBalls = null;
+  investmentsSincePlayBoundary = 0;
+  investFromStop = !hasInvestmentBeforeStop;
   saveSession();
-  investFromStop = true;
-  scrollToInvestCard();
+
+  if (!hasInvestmentBeforeStop) {
+    scrollToInvestCard();
+  }
 }
 
 function undoSpinEventUnified() {
@@ -1464,29 +1623,12 @@ function addStopEvent() {
 
   endBallsPending = true;
 
-  if (Number.isFinite(lastMidCheckBalls) && lastMidCheckBalls >= 0) {
-    endBallsYame = Math.floor(lastMidCheckBalls);
-    endBallsPending = false;
-
-    const last = spinLog[spinLog.length - 1];
-    if (last && String(last.label).startsWith("ヤメ")) {
-      last.label = "ヤメ";
-      last.endBalls = endBallsYame;
-    }
-
-    $("endBallsPanel")?.classList.add("is-hidden");
-    if ($("endBallsNow")) $("endBallsNow").value = "";
-
-    renderSpinLog();
-    setLogMode("main");
-    setCounterInputLocked(false);
-    saveSession();
-    investFromStop = true;
-    scrollToInvestCard();
-    return;
+  if ($("endBallsNow")) {
+    const hasRushOrLt = spinLog.some((row) =>
+      row.label === "RUSH終了" || row.label === "LT終了"
+    );
+    $("endBallsNow").value = hasRushOrLt ? "" : "0";
   }
-
-  if ($("endBallsNow")) $("endBallsNow").value = "0";
   $("endBallsPanel")?.classList.remove("is-hidden");
 
   renderSpinLog();
@@ -1590,8 +1732,8 @@ if (isValidExchange(savedExchange)) {
   }
 
   sel.addEventListener("change", () => {
-    isSwitchingMachine = true;
     saveSession();
+    isSwitchingMachine = true;
 
     const id = sel.value;
     const m = MACHINES.find((x) => x.id === id);
@@ -1627,10 +1769,14 @@ if (exchangeSel) {
 
     setInvestYen(0, true);
     setOwnedUseBalls(0, true);
+    setOutputUseBalls(0, true);
     confirmedInvestYen = 0;
     confirmedOwnedBalls = 0;
+    confirmedOutputBalls = 0;
+    investmentsSincePlayBoundary = 0;
     renderConfirmedInvest();
     renderConfirmedOwned();
+    renderConfirmedOutput();
 
     resetSpinLog(true);
     hasStarted = false;
@@ -1640,6 +1786,7 @@ if (exchangeSel) {
     if (restored) {
       renderSpinLog();
       if (payoutConfirmIndex !== -1) $("payoutPanel")?.classList.remove("is-hidden");
+      if (pendingHitHandData) $("hitHandPanel")?.classList.remove("is-hidden");
       if (endBallsPending) $("endBallsPanel")?.classList.remove("is-hidden");
       setLogMode(pendingIndex !== -1 ? "afterHit" : "main");
       updateStartButton();
@@ -1774,15 +1921,32 @@ function setOwnedUseBalls(value, skipSave = false) {
   if (!skipSave) saveSession();
 }
 
+function setOutputUseBalls(value, skipSave = false) {
+  outputUseBalls = Math.max(0, Math.floor(Number(value) || 0));
+
+  const el = $("outputUseBalls");
+  if (el) el.value = outputUseBalls === 0 ? "" : String(outputUseBalls);
+
+  if (!skipSave) saveSession();
+}
+
 function setPlaySource(source) {
-  playSource = source === "owned" ? "owned" : "cash";
+  playSource = ["cash", "owned", "output"].includes(source) ? source : "cash";
 
   $("playCashBtn")?.classList.toggle("is-active", playSource === "cash");
   $("playOwnedBtn")?.classList.toggle("is-active", playSource === "owned");
+  $("playOutputBtn")?.classList.toggle("is-active", playSource === "output");
   $("investYen")?.closest("label")?.classList.toggle("is-hidden", playSource !== "cash");
   $("calcBtn")?.classList.toggle("is-hidden", playSource !== "cash");
   $("ownedUseLabel")?.classList.toggle("is-hidden", playSource !== "owned");
   $("ownedUseBtn")?.classList.toggle("is-hidden", playSource !== "owned");
+  $("outputUseLabel")?.classList.toggle("is-hidden", playSource !== "output");
+  $("outputConfirmed")?.classList.toggle("is-hidden", playSource !== "output");
+  $("investCard")?.classList.toggle("is-output-source", playSource === "output");
+
+  if (playSource === "output" && outputUseBalls <= 0) {
+    setOutputUseBalls(getDailyHandBalls(), true);
+  }
 
   updateInvestButtons();
   saveSession();
@@ -1795,16 +1959,16 @@ function subInvest(amount) {
   setInvestYen(investYen - amount);
 }
 function updateInvestButtons() {
-  const owned = playSource === "owned";
+  const balls = playSource === "owned" || playSource === "output";
   const add500 = $("add500");
   const add1000 = $("add1000");
   const add5000 = $("add5000");
   const sub500 = $("sub500");
 
-  if (add500) add500.textContent = owned ? "+125玉" : "+500円";
-  if (add1000) add1000.textContent = owned ? "+250玉" : "+1000円";
-  if (add5000) add5000.textContent = owned ? "+1250玉" : "+5000円";
-  if (sub500) sub500.textContent = owned ? "-125玉" : "-500円";
+  if (add500) add500.textContent = balls ? "+125玉" : "+500円";
+  if (add1000) add1000.textContent = balls ? "+250玉" : "+1000円";
+  if (add5000) add5000.textContent = balls ? "+1250玉" : "+5000円";
+  if (sub500) sub500.textContent = balls ? "-125玉" : "-500円";
 }
 
 function addQuickAmount(amount) {
@@ -1824,8 +1988,8 @@ function clearCurrentPlayInput() {
 }
 
 function undoLastInvest() {
-  if (lastConfirmedInvestYen <= 0 && lastConfirmedOwnedBalls <= 0) {
-    alert("戻せる投資・持ち玉使用がありません");
+  if (lastConfirmedInvestYen <= 0 && lastConfirmedOwnedBalls <= 0 && lastConfirmedOutputBalls <= 0) {
+    alert("戻せる投資・貯玉・持ち玉使用がありません");
     return;
   }
 
@@ -1840,11 +2004,21 @@ function undoLastInvest() {
     addOwnedBalance(lastConfirmedOwnedBalls);
   }
 
+  if (lastConfirmedOutputBalls > 0) {
+    confirmedOutputBalls -= lastConfirmedOutputBalls;
+    if (confirmedOutputBalls < 0) confirmedOutputBalls = 0;
+  }
+
   lastConfirmedInvestYen = 0;
   lastConfirmedOwnedBalls = 0;
+  lastConfirmedOutputBalls = 0;
+  if (investmentsSincePlayBoundary > 0) {
+    investmentsSincePlayBoundary -= 1;
+  }
 
   renderConfirmedInvest();
   renderConfirmedOwned();
+  renderConfirmedOutput();
   saveSession();
 }
 
@@ -1858,6 +2032,7 @@ function confirmInvest() {
 
   lastConfirmedInvestYen = add;
   lastConfirmedOwnedBalls = 0;
+  lastConfirmedOutputBalls = 0;
   confirmedInvestYen += add;
   if (confirmedInvestYen < 0) confirmedInvestYen = 0;
 
@@ -1876,6 +2051,7 @@ function confirmInvest() {
 
   setInvestYen(0, true);
   renderConfirmedInvest();
+  investmentsSincePlayBoundary += 1;
   saveSession();
 
   if (investFromStop) {
@@ -1890,7 +2066,7 @@ function confirmInvest() {
 function confirmOwnedUse() {
   const store = normalizeStoreName(selectedStore || $("storeName")?.value);
   if (!store) {
-    alert("\u6301\u3061\u7389\u3092\u4f7f\u3046\u5e97\u540d\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044");
+    alert("貯玉を使う店舗を選択してください");
     $("storeName")?.focus();
     return;
   }
@@ -1901,17 +2077,18 @@ function confirmOwnedUse() {
 
   const add = Math.floor(Number(ownedUseBalls) || 0);
   if (!Number.isFinite(add) || add <= 0) {
-    alert("\u4f7f\u7528\u3059\u308b\u6301\u3061\u7389\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044");
+    alert("使用する貯玉を入力してください");
     return;
   }
 
   if (add > getOwnedBalance()) {
-    alert("\u767b\u9332\u3055\u308c\u3066\u3044\u308b\u6301\u3061\u7389\u3088\u308a\u591a\u304f\u306f\u4f7f\u3048\u307e\u305b\u3093");
+    alert("登録されている貯玉より多くは使えません");
     return;
   }
 
   lastConfirmedInvestYen = 0;
   lastConfirmedOwnedBalls = add;
+  lastConfirmedOutputBalls = 0;
   confirmedOwnedBalls += add;
   addOwnedBalance(-add);
 
@@ -1928,6 +2105,65 @@ function confirmOwnedUse() {
   setOwnedUseBalls(0, true);
   renderConfirmedOwned();
   renderStoreControls();
+  investmentsSincePlayBoundary += 1;
+  saveSession();
+
+  if (investFromStop) {
+    $("finalCalcCard")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  } else {
+    scrollToMidCheckButton();
+  }
+
+  investFromStop = false;
+}
+
+function confirmOutputUse() {
+  const currentHand = Math.floor(Number(outputUseBalls));
+  if (!Number.isFinite(currentHand) || currentHand < 0) {
+    alert("現在の持ち玉を入力してください");
+    return;
+  }
+
+  const startHand = Number.isFinite(playStartHandBalls) ? playStartHandBalls : getDailyHandBalls();
+  if (!Number.isFinite(startHand) || startHand <= 0) {
+    alert("計算元になる持ち玉がありません");
+    return;
+  }
+
+  if (currentHand > startHand) {
+    alert("現在の持ち玉が開始時の持ち玉より多くなっています");
+    return;
+  }
+
+  const add = startHand - currentHand;
+  if (add <= 0) {
+    alert("投資された持ち玉はありません");
+    setDailyHandBalls(currentHand);
+    playStartHandBalls = currentHand;
+    setOutputUseBalls(0, true);
+    return;
+  }
+
+  lastConfirmedInvestYen = 0;
+  lastConfirmedOwnedBalls = 0;
+  lastConfirmedOutputBalls = add;
+  confirmedOutputBalls += add;
+
+  for (let i = spinLog.length - 1; i >= 0; i--) {
+    const row = spinLog[i];
+    const a = Number(row.add) || 0;
+
+    if (a > 0) {
+      row.outputBalls = (Number(row.outputBalls) || 0) + add;
+      break;
+    }
+  }
+
+  setOutputUseBalls(0, true);
+  renderConfirmedOutput();
+  setDailyHandBalls(currentHand);
+  playStartHandBalls = currentHand;
+  investmentsSincePlayBoundary += 1;
   saveSession();
 
   if (investFromStop) {
@@ -2178,11 +2414,9 @@ function renderMachineTotalCards() {
       }
     }
 
-    const ownedBallsTotal =
-      (Number(itemTotals.totalOwnedBallsUsed) || 0) +
-      (Number(itemTotals.totalOutputBallsUsed) || 0);
     card.appendChild(addMetricRow("累計投資", (valueEl) => {
-      valueEl.textContent = `現金${fmtInt(itemTotals.totalInvestYen)}円 / 持ち玉${fmtInt(ownedBallsTotal)}玉`;
+      valueEl.textContent =
+        `現金${fmtInt(itemTotals.totalInvestYen)}円 / 貯玉${fmtInt(itemTotals.totalOwnedBallsUsed)}玉 / 出玉${fmtInt(itemTotals.totalOutputBallsUsed)}玉`;
     }, "machine-total-card__metric--invest"));
 
     card.appendChild(addMetricRow("持ち玉比率", (valueEl) => {
@@ -2326,11 +2560,8 @@ function updateView() {
 
   const invEl = $("totalInvest");
   if (invEl) {
-    const ownedBallsTotal =
-      (Number(totals.totalOwnedBallsUsed) || 0) +
-      (Number(totals.totalOutputBallsUsed) || 0);
     invEl.innerText =
-      `累計投資：現金${fmtInt(totals.totalInvestYen)}円 / 持ち玉${fmtInt(ownedBallsTotal)}玉`;
+      `累計投資：現金${fmtInt(totals.totalInvestYen)}円 / 貯玉${fmtInt(totals.totalOwnedBallsUsed)}玉 / 出玉${fmtInt(totals.totalOutputBallsUsed)}玉`;
   }
 
   const avgRate =
@@ -2448,7 +2679,12 @@ function renderSpinLog() {
 
     const ownedText =
       x.ownedBalls && x.ownedBalls > 0
-        ? ` / 持ち玉${fmtInt(x.ownedBalls)}玉`
+        ? ` / 貯玉${fmtInt(x.ownedBalls)}玉`
+        : "";
+
+    const outputText =
+      x.outputBalls && x.outputBalls > 0
+        ? ` / 持ち玉${fmtInt(x.outputBalls)}玉`
         : "";
 
     const disp = (x.payoutDisp ?? x.payout);
@@ -2468,7 +2704,7 @@ function renderSpinLog() {
       <div>
         <div>${x.label}</div>
         <small>
-          ${rangeText}${addText}${investText}${ownedText}${payoutText}${endBallsText}
+          ${rangeText}${addText}${investText}${ownedText}${outputText}${payoutText}${endBallsText}
         </small>
       </div>
       <div><small>#${i + 1}</small></div>
@@ -2489,8 +2725,14 @@ function getPlayInputsFromLog() {
   return spinLog.reduce((sum, row) => {
     sum.investK += Number(row.investK) || 0;
     sum.ownedBalls += Number(row.ownedBalls) || 0;
+    sum.outputBalls += Number(row.outputBalls) || 0;
     return sum;
-  }, { investK: 0, ownedBalls: 0 });
+  }, { investK: 0, ownedBalls: 0, outputBalls: 0 });
+}
+
+function getSessionStartHandBalls() {
+  const row = spinLog.find((item) => Number.isFinite(item?.startHandBalls));
+  return Math.max(0, Math.floor(Number(row?.startHandBalls) || 0));
 }
 
 function getOutcomeStatsFromLog() {
@@ -2551,20 +2793,27 @@ function calc() {
   const playInputs = getPlayInputsFromLog();
   const investK = Number(playInputs.investK) || (confirmedInvestYen / 1000);
   const ownedBallsUsed = Number(playInputs.ownedBalls) || confirmedOwnedBalls;
-  if ((!Number.isFinite(investK) || investK <= 0) && ownedBallsUsed <= 0) {
-    alert("総投資または持ち玉使用がありません");
+  const outputBallsUsedInput = Number(playInputs.outputBalls) || confirmedOutputBalls;
+  if ((!Number.isFinite(investK) || investK <= 0) && ownedBallsUsed <= 0 && outputBallsUsedInput <= 0) {
+    alert("総投資または貯玉・持ち玉使用がありません");
     return;
   }
 
   const payout = getTotalPayoutFromLog();
   const endBalls = endBallsYame;
   const cashInvestBalls = investK * 250;
-  const investBalls = cashInvestBalls + ownedBallsUsed;
-  const consumedBalls = investBalls + payout - endBalls;
-  const outputUsedBalls = Math.max(0, payout - endBalls);
-  const playSourceBalls = cashInvestBalls + ownedBallsUsed + outputUsedBalls;
+  const investBalls = cashInvestBalls + ownedBallsUsed + outputBallsUsedInput;
+  const sessionStartHandBalls = getSessionStartHandBalls();
+  const remainingCarriedHandBalls = sessionStartHandBalls > 0
+    ? Math.max(0, sessionStartHandBalls - outputBallsUsedInput)
+    : (outputBallsUsedInput > 0 ? Math.max(0, endBalls - payout) : 0);
+  const sessionEndBalls = Math.max(0, endBalls - remainingCarriedHandBalls);
+  const consumedBalls = investBalls + payout - sessionEndBalls;
+  const outputUsedBalls = Math.max(0, payout - sessionEndBalls);
+  const totalOutputBallsUsed = outputBallsUsedInput + outputUsedBalls;
+  const playSourceBalls = cashInvestBalls + ownedBallsUsed + totalOutputBallsUsed;
   const ownedRatio = playSourceBalls > 0
-    ? Math.max(0, Math.min(1, (ownedBallsUsed + outputUsedBalls) / playSourceBalls))
+    ? Math.max(0, Math.min(1, (ownedBallsUsed + totalOutputBallsUsed) / playSourceBalls))
     : 0;
   const trueBorder = calcTrueBorder(ownedRatio);
 
@@ -2584,7 +2833,7 @@ function calc() {
   totals.totalSpin += spinCount;
   totals.totalInvestYen += confirmedInvestYen;
   totals.totalOwnedBallsUsed = (Number(totals.totalOwnedBallsUsed) || 0) + confirmedOwnedBalls;
-  totals.totalOutputBallsUsed = (Number(totals.totalOutputBallsUsed) || 0) + outputUsedBalls;
+  totals.totalOutputBallsUsed = (Number(totals.totalOutputBallsUsed) || 0) + totalOutputBallsUsed;
   totals.totalKInvested += investK;
   totals.totalHitCount += outcomeStats.hitCount;
   totals.totalTanCount = (Number(totals.totalTanCount) || 0) + outcomeStats.tanCount;
@@ -2604,10 +2853,6 @@ function calc() {
 
   saveTotalsForSelectedMachine();
 
-  if (selectedStore) {
-    addOwnedBalance(endBalls);
-  }
-
   const finalEl = $("finalResult");
   const borderVal = getCurrentBorder();
   const diffBorder = trueBorder ?? borderVal;
@@ -2622,14 +2867,11 @@ function calc() {
         ? "is-plus"
         : "is-minus";
   if (finalEl) {
-    const bonusBalls = payout - endBalls;
-    const bonusK = bonusBalls / 250;
-
     finalEl.innerHTML = "";
 
     const formulaLine = document.createElement("div");
     formulaLine.textContent =
-      `${fmtInt(spinCount)} / ( 現金${fmtRate1(investK)}k + 持ち玉${fmtInt(ownedBallsUsed)}玉 + 出玉${fmtRate2(bonusK)}k玉 )`;
+      `${fmtInt(spinCount)} / ( 現金${fmtRate1(investK)}k + 貯玉${fmtInt(ownedBallsUsed)}玉 + 出玉${fmtInt(totalOutputBallsUsed)}玉 )`;
     finalEl.appendChild(formulaLine);
 
     const ownedRatioLine = document.createElement("div");
@@ -2665,8 +2907,11 @@ function calc() {
 
   confirmedInvestYen = 0;
   confirmedOwnedBalls = 0;
+  confirmedOutputBalls = 0;
+  investmentsSincePlayBoundary = 0;
   renderConfirmedInvest();
   renderConfirmedOwned();
+  renderConfirmedOutput();
   renderStoreControls();
   saveSession();
 
@@ -2745,10 +2990,14 @@ function resetSelectedMachineTotals() {
   if (confirmedOwnedBalls > 0) addOwnedBalance(confirmedOwnedBalls);
   setInvestYen(0);
   setOwnedUseBalls(0);
+  setOutputUseBalls(0);
   confirmedInvestYen = 0;
   confirmedOwnedBalls = 0;
+  confirmedOutputBalls = 0;
+  investmentsSincePlayBoundary = 0;
   renderConfirmedInvest();
   renderConfirmedOwned();
+  renderConfirmedOutput();
 
   clearSession();
   resetSpinLog(true);
@@ -2762,25 +3011,35 @@ function resetTodayLog() {
 
   setInvestYen(0);
   setOwnedUseBalls(0);
+  setOutputUseBalls(0);
+  setDailyHandBalls(0);
   if (confirmedOwnedBalls > 0) addOwnedBalance(confirmedOwnedBalls);
   confirmedInvestYen = 0;
   confirmedOwnedBalls = 0;
+  confirmedOutputBalls = 0;
+  playStartHandBalls = null;
+  investmentsSincePlayBoundary = 0;
   renderConfirmedInvest();
   renderConfirmedOwned();
+  renderConfirmedOutput();
+  renderOwnedBalance();
 
   spinLog = [];
   pendingIndex = -1;
   payoutConfirmIndex = -1;
   endBallsPending = false;
   endBallsYame = null;
+  pendingHitHandData = null;
   nextStartCounter = 0;
   hasStarted = false;
   lastMidCheckBalls = null;
+  playStartHandBalls = null;
 
   setCounterInputLocked(false);
   updateStartButton();
 
   $("counterNow") && ($("counterNow").value = "");
+  $("outputUseBalls") && ($("outputUseBalls").value = "");
   $("payoutPanel")?.classList.add("is-hidden");
   $("endBallsPanel")?.classList.add("is-hidden");
 
@@ -2915,8 +3174,8 @@ function skipInvest() {
 
 function showMidCheck() {
   const playInputs = getPlayInputsFromLog();
-  if (!(confirmedInvestYen > 0 || confirmedOwnedBalls > 0 || playInputs.investK > 0 || playInputs.ownedBalls > 0)) {
-    alert("投資額または持ち玉使用を追加してください");
+  if (!(confirmedInvestYen > 0 || confirmedOwnedBalls > 0 || confirmedOutputBalls > 0 || playInputs.investK > 0 || playInputs.ownedBalls > 0 || playInputs.outputBalls > 0)) {
+    alert("投資額または貯玉・持ち玉使用を追加してください");
     scrollToInvestCard();
     return;
   }
@@ -2933,49 +3192,15 @@ function showMidCheck() {
   $("midCheckCard")?.classList.remove("is-hidden");
   $("midOverlay")?.classList.remove("is-hidden");
 
-  const hitCount = spinLog.filter(x =>
-    x.label === "単発" ||
-    x.label === "RUSH終了" ||
-    x.label === "LT終了"
-  ).length;
-
   const inputWrap = $("midBallsNow")?.closest("label");
   const btn = $("midBallsConfirm");
-
-  if (hitCount === 0) {
-    inputWrap?.classList.add("is-hidden");
-    btn?.classList.add("is-hidden");
-    confirmMidCheck();
-    return;
-  }
-
-  inputWrap?.classList.remove("is-hidden");
-  btn?.classList.remove("is-hidden");
-
-  const input = $("midBallsNow");
-  if (input) {
-    input.value = "";
-    input.focus();
-  }
+  inputWrap?.classList.add("is-hidden");
+  btn?.classList.add("is-hidden");
+  confirmMidCheck();
 }
 
 function confirmMidCheck() {
-  const hitCount = spinLog.filter(x =>
-    x.label === "単発" ||
-    x.label === "RUSH終了" ||
-    x.label === "LT終了"
-  ).length;
-
   let tempEndBalls = 0;
-
-  if (hitCount > 0) {
-    const v = Number($("midBallsNow")?.value);
-    if (!Number.isFinite(v) || v < 0) {
-      alert("現在の持ち玉（玉）を入力してください");
-      return;
-    }
-    tempEndBalls = Math.floor(v);
-  }
 
   lastMidCheckBalls = tempEndBalls;
 
@@ -2986,8 +3211,8 @@ function confirmMidCheck() {
     return;
   }
 
-  const { spinCount, rotationRate } = result;
-  const border = getCurrentBorder();
+  const { spinCount, rotationRate, trueBorder } = result;
+  const border = trueBorder ?? getCurrentBorder();
   updateMidRateMeter(rotationRate, border);
 
   const diff = Number.isFinite(border) ? rotationRate - border : null;
@@ -3071,15 +3296,22 @@ function calcMidRotationRateB(tempEndBalls) {
   const playInputs = getPlayInputsFromLog();
   const investK = Number(playInputs.investK) || (confirmedInvestYen / 1000);
   const ownedBallsUsed = Number(playInputs.ownedBalls) || confirmedOwnedBalls;
-  const investBalls = investK * 250 + ownedBallsUsed;
-  const payout = getTotalPayoutFromLog();
+  const outputBallsUsedInput = Number(playInputs.outputBalls) || confirmedOutputBalls;
+  const cashInvestBalls = investK * 250;
+  const totalOutputBallsUsed = outputBallsUsedInput;
+  const consumedBalls = cashInvestBalls + ownedBallsUsed + totalOutputBallsUsed;
 
-  const consumedBalls = investBalls + payout - tempEndBalls;
   if (consumedBalls <= 0) return null;
+
+  const playSourceBalls = cashInvestBalls + ownedBallsUsed + totalOutputBallsUsed;
+  const ownedRatio = playSourceBalls > 0
+    ? Math.max(0, Math.min(1, (ownedBallsUsed + totalOutputBallsUsed) / playSourceBalls))
+    : 0;
 
   return {
     spinCount,
     rotationRate: (spinCount / consumedBalls) * 250,
+    trueBorder: calcTrueBorder(ownedRatio),
   };
 }
 
@@ -3161,18 +3393,21 @@ function init() {
   $("btnUndo")?.addEventListener("click", undoSpinEventUnified);
   $("btnUndo2")?.addEventListener("click", undoSpinEventUnified);
   $("btnStop")?.addEventListener("click", addStopEvent);
+  $("btnHitHandConfirm")?.addEventListener("click", confirmHitHand);
   $("btnEndBallsConfirm")?.addEventListener("click", confirmEndBalls);
   $("btnPayoutConfirm")?.addEventListener("click", confirmPayout);
   $("resetLogBtn")?.addEventListener("click", resetTodayLog);
   $("btnCharge")?.addEventListener("click", () => confirmHitOutcome("charge"));
 
-  $("add500")?.addEventListener("click", () => addQuickAmount(playSource === "owned" ? 125 : 500));
-  $("add1000")?.addEventListener("click", () => addQuickAmount(playSource === "owned" ? 250 : 1000));
-  $("add5000")?.addEventListener("click", () => addQuickAmount(playSource === "owned" ? 1250 : 5000));
-  $("sub500")?.addEventListener("click", () => addQuickAmount(playSource === "owned" ? -125 : -500));
+  $("add500")?.addEventListener("click", () => addQuickAmount(playSource === "cash" ? 500 : 125));
+  $("add1000")?.addEventListener("click", () => addQuickAmount(playSource === "cash" ? 1000 : 250));
+  $("add5000")?.addEventListener("click", () => addQuickAmount(playSource === "cash" ? 5000 : 1250));
+  $("sub500")?.addEventListener("click", () => addQuickAmount(playSource === "cash" ? -500 : -125));
   $("ownedUseBtn")?.addEventListener("click", confirmOwnedUse);
+  $("outputUseBtn")?.addEventListener("click", confirmOutputUse);
   $("playCashBtn")?.addEventListener("click", () => setPlaySource("cash"));
   $("playOwnedBtn")?.addEventListener("click", () => setPlaySource("owned"));
+  $("playOutputBtn")?.addEventListener("click", () => setPlaySource("output"));
   $("skipInvest")?.addEventListener("click", skipInvest);
   $("clearInvest")?.addEventListener("click", clearCurrentPlayInput);
 
@@ -3214,6 +3449,11 @@ function init() {
     if (!Number.isFinite(val)) return;
     setOwnedUseBalls(val);
   });
+  $("outputUseBalls")?.addEventListener("change", () => {
+    const val = Number($("outputUseBalls").value);
+    if (!Number.isFinite(val)) return;
+    setOutputUseBalls(val);
+  });
   $("ownedBalanceSaveBtn")?.addEventListener("click", saveOwnedBalanceInput);
   $("ownedBalanceInput")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
@@ -3225,7 +3465,10 @@ function init() {
   $("storeSelect")?.addEventListener("change", () => {
     selectStore($("storeSelect").value);
   });
-  $("storePickerOpen")?.addEventListener("click", openStorePicker);
+  $("storePickerOpen")?.addEventListener("click", () => {
+    if (selectedStore) return;
+    openStorePicker();
+  });
   $("storePickerClose")?.addEventListener("click", closeStorePicker);
   $("storePickerOverlay")?.addEventListener("click", closeStorePicker);
   $("storeSearchInput")?.addEventListener("input", renderStorePickerList);
@@ -3241,6 +3484,7 @@ function init() {
     selectStore(selectBtn.dataset.storeName);
     closeStorePicker();
   });
+  $("storeChangeBtn")?.addEventListener("click", openStorePicker);
   $("storeAddBtn")?.addEventListener("click", startStoreAdd);
   $("storeSaveBtn")?.addEventListener("click", saveNewStore);
   $("storeCancelBtn")?.addEventListener("click", cancelStoreAdd);
@@ -3268,14 +3512,18 @@ function init() {
   if (restored) {
     renderSpinLog();
     if (payoutConfirmIndex !== -1) $("payoutPanel")?.classList.remove("is-hidden");
+    if (pendingHitHandData) $("hitHandPanel")?.classList.remove("is-hidden");
     if (endBallsPending) $("endBallsPanel")?.classList.remove("is-hidden");
     setLogMode(pendingIndex !== -1 ? "afterHit" : "main");
   } else {
     resetSpinLog();
     confirmedInvestYen = 0;
     confirmedOwnedBalls = 0;
+    confirmedOutputBalls = 0;
+    investmentsSincePlayBoundary = 0;
     renderConfirmedInvest();
     renderConfirmedOwned();
+    renderConfirmedOutput();
   }
 
   currentGoalIndex = 0;

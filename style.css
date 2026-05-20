@@ -346,6 +346,31 @@ progress::-webkit-progress-value{
   gap: 11px;
   margin-bottom: 16px;
 }
+
+#investCard.is-output-source .invest-buttons{
+  display: none;
+}
+
+.output-use-row{
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(144px, 0.86fr);
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 12px;
+}
+
+.output-use-row label{
+  margin: 0;
+}
+
+#outputUseBtn{
+  min-height: 58px;
+  padding: 10px 12px;
+  border-radius: var(--r-control);
+  font-size: 0.88rem;
+  line-height: 1.25;
+  font-weight: 800;
+}
 .invest-row{ display: flex; gap: 10px; }
 
 .chip{
@@ -606,6 +631,31 @@ progress::-webkit-progress-value{
 .log-item small{ opacity: 0.75; }
 
 .is-hidden{ display:none !important; }
+
+.app-toast{
+  position: fixed;
+  left: 50%;
+  bottom: calc(78px + env(safe-area-inset-bottom));
+  transform: translateX(-50%) translateY(8px);
+  z-index: 90;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.94);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: 0 12px 28px rgba(2, 6, 23, 0.26);
+  opacity: 0;
+  transition: opacity 160ms ease, transform 160ms ease;
+  pointer-events: none;
+}
+
+.app-toast.is-visible{
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
 
 
 .log-actions{
@@ -950,7 +1000,7 @@ progress.goal-rainbow::-moz-progress-bar{
   white-space: nowrap;
 }
 .kv-key::after{
-  content: "\uff1a";
+  content: "：";
 }
 
 .kv-val{
@@ -1150,20 +1200,53 @@ progress.goal-rainbow::-moz-progress-bar{
   align-items:flex-end;
   gap:12px;
   grid-column: 1 / -1;
-  grid-row: 2;
+  grid-row: 3;
 }
 
 .store-row{
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr;
   gap: 10px;
   align-items: start;
   margin-top: 10px;
 }
 
-.store-row > label:first-of-type{
+.store-heading{
   grid-column: 1 / -1;
   grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.store-heading > span{
+  color: var(--text);
+  font-weight: 700;
+}
+
+.store-heading-actions{
+  display: grid;
+  grid-template-columns: 76px 70px;
+  gap: 6px;
+  flex: none;
+}
+
+.store-row > label:first-of-type{
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.visually-hidden{
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 #storeSelect{
@@ -1186,6 +1269,14 @@ progress.goal-rainbow::-moz-progress-bar{
   text-align: left;
 }
 
+.store-row.is-store-selected .store-picker-open{
+  cursor: default;
+}
+
+.store-row.is-store-selected .store-picker-open__hint{
+  display: none;
+}
+
 #selectedStoreName{
   min-width: 0;
   overflow: hidden;
@@ -1202,11 +1293,16 @@ progress.goal-rainbow::-moz-progress-bar{
   font-size: 12px;
 }
 
+#storeChangeBtn{
+  margin-top: 0;
+}
+
+#storeChangeBtn.is-reserved{
+  visibility: hidden;
+  pointer-events: none;
+}
+
 #storeAddBtn{
-  grid-column: 1 / -1;
-  grid-row: 1;
-  justify-self: end;
-  align-self: start;
   margin-top: 0;
 }
 
@@ -1216,7 +1312,7 @@ progress.goal-rainbow::-moz-progress-bar{
 
 .store-row .owned-summary{
   grid-column: 1 / -1;
-  grid-row: 3;
+  grid-row: 4;
 }
 
 .store-row.is-adding-store{
@@ -1224,6 +1320,7 @@ progress.goal-rainbow::-moz-progress-bar{
   align-items: start;
 }
 
+.store-row.is-adding-store .store-heading,
 .store-row.is-adding-store > label:first-of-type{
   display: none;
 }
@@ -1251,19 +1348,22 @@ progress.goal-rainbow::-moz-progress-bar{
 
 .store-row.is-adding-store .owned-summary{
   grid-column: 1 / -1;
-  grid-row: 4;
+  grid-row: 5;
   width: 100%;
   box-sizing: border-box;
 }
 
 #storeAddBtn,
+#storeChangeBtn,
 #storeSaveBtn,
 #storeCancelBtn{
   width: auto;
   min-width: 0;
-  height: 28px;
-  padding: 4px 8px;
+  min-height: 30px;
+  padding: 5px 7px;
   font-size: 12px;
+  line-height: 1.15;
+  white-space: nowrap;
   box-shadow: none;
 }
 
@@ -1286,6 +1386,12 @@ progress.goal-rainbow::-moz-progress-bar{
   margin-top: 3px;
 }
 
+.current-hand-balls{
+  margin-top: 3px;
+  font-weight: 400;
+  color: rgba(15, 23, 42, 0.68);
+}
+
 .owned-edit{
   display: grid;
   grid-template-columns: 1fr auto;
@@ -1301,14 +1407,15 @@ progress.goal-rainbow::-moz-progress-bar{
 
 #ownedBalanceSaveBtn{
   width: auto;
-  min-width: 48px;
+  min-width: 82px;
   height: 34px;
   padding: 6px 10px;
-  font-size: 13px;
+  font-size: 12px;
   box-shadow: none;
 }
 
 #storeAddBtn,
+#storeChangeBtn,
 #ownedBalanceSaveBtn{
   background: linear-gradient(180deg, #e7f7ff 0%, #bfe9fb 100%);
   color: #075985;
@@ -1317,6 +1424,7 @@ progress.goal-rainbow::-moz-progress-bar{
 }
 
 #storeAddBtn:hover,
+#storeChangeBtn:hover,
 #ownedBalanceSaveBtn:hover{
   filter: brightness(1.04);
 }
@@ -1533,6 +1641,14 @@ progress.goal-rainbow::-moz-progress-bar{
   box-shadow: 0 8px 18px rgba(15, 95, 89, 0.18);
 }
 
+#playOutputBtn{
+  background: linear-gradient(180deg, #6597f2 0%, #2f63c6 55%, #1e3f91 100%);
+  color: #ffffff;
+  border: 1px solid rgba(30, 64, 175, 0.42);
+  text-shadow: 0 1px 2px rgba(15, 23, 42, 0.30);
+  box-shadow: 0 8px 18px rgba(30, 64, 175, 0.18);
+}
+
 #playCashBtn{
   background: linear-gradient(180deg, #dfb44f 0%, #a77224 52%, #794916 100%);
   color: #ffffff;
@@ -1560,6 +1676,12 @@ progress.goal-rainbow::-moz-progress-bar{
 
 #playOwnedBtn.is-active{
   background: linear-gradient(180deg, #58c2ae 0%, #1a9383 55%, #126760 100%);
+  color: #ffffff;
+  border-color: rgba(216, 189, 82, 0.70);
+}
+
+#playOutputBtn.is-active{
+  background: linear-gradient(180deg, #78a7ff 0%, #376fd1 55%, #23499d 100%);
   color: #ffffff;
   border-color: rgba(216, 189, 82, 0.70);
 }
@@ -1619,6 +1741,29 @@ progress.goal-rainbow::-moz-progress-bar{
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   margin-bottom: 14px;
+}
+
+.output-source-wrap{
+  display: grid;
+  grid-template-columns: minmax(112px, 1fr) minmax(128px, 1fr);
+  align-items: stretch;
+  gap: 10px;
+  grid-column: 1 / -1;
+}
+
+.invest-hand-balance{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 8px 10px;
+  border-radius: var(--r-chip);
+  border: 1px solid rgba(30, 64, 175, 0.24);
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .play-source-tabs .chip.is-active{
