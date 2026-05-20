@@ -1,0 +1,9 @@
+{
+  "appId": "com.pastadeteatime.evtracker",
+  "appName": "期待値トラッカー",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "ios": {
+    "contentInset": "automatic"
+  }
+}
